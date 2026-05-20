@@ -25,28 +25,31 @@ Jetson3 - instalacja VScode
 Jetson1 - instalacja VScode, przeglądarka
 
   
-## Kwestie podziału etapu II
+## Kwestie podziału etapu II - modele i ich walidacja
 
-dział - Model rozpoznawania obiektu
+Etap - Model rozpoznawania obiektu
 
-dział - Operacje Elektroniką
-
-  
-### Uczenie modelu
-
-Wykorzystanie Modelu YOLO. Ustalenie typów obrazu do uczenia modeli. Sprawdzenie różnych modeli oraz jak się sprawdzają. Ewentualne douczanie
+Etap - Operacje Elektroniką
 
   
+## Uczenie modelu
 
-testowanie i porównanie
+### Testowanie i porównanie
 
-  
+Wykorzystanie modeli między innymi YOLO. Ustalenie typów obrazu do uczenia modeli - podział ludzie, pojazdy. Sprawdzenie różnych modeli oraz jak działają pod kątem jakości. Ewentualne douczanie
 
-Implementacja najlepiej rozpoznającego modelu (rozponanie osoby z różnych perspektyw)
+---
 
-  
+### Kryteria klasyfikacji unikalnego obiektu:
+kształt (sylwetka), kolorystyka
 
-### Elektronika
+### Wybór modelu najlepszego (ewentualnie do 2 max. zadowalających)
+
+Wstawienie najlepiej rozpoznającego modelu (rozponanie osoby z różnych perspektyw)
+
+---
+
+## Elektronika
 
 Proste podpięcia - np. kamery do jetson-ów
 
@@ -64,8 +67,8 @@ Rozwiązywanie potencjalnych problemów końcowych
 
   
 
-### Walidacja działania systemu jetsonów względem założeń początkowych
+## Walidacja działania systemu jetsonów względem założeń początkowych
 
   
 
-## Przy pomyślnej walidacji zakończenie projektu
+# Przy pomyślnej walidacji zakończenie projektu
