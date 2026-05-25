@@ -7,6 +7,7 @@ Olek
 *pojazdy*
 Maks 
 Diego
+Paweł
 
 ## Zespół drei
 *Ludzie*
@@ -17,4 +18,3 @@ Seweryn
 *Pojazdy*
 Hubert
 Piotr
-Paweł
