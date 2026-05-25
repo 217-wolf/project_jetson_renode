@@ -1,12 +1,11 @@
 ## Zespół uno
 *Ludzie*
-Olek 
 Łukasz
+Diego
 
 ## Zespół two
 *pojazdy*
 Maks 
-Diego
 Paweł
 
 ## Zespół drei
@@ -16,5 +15,6 @@ Seweryn
 
 ## Zespół czwarty
 *Pojazdy*
+Olek
 Hubert
 Piotr
