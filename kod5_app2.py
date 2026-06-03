@@ -16,17 +16,22 @@ from scipy.spatial.distance import cosine
 from ultralytics import YOLO
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+import numpy as np
+from sklearn.cluster import AgglomerativeClustering
+from collections import defaultdict
+from torchvision import transforms
+import torchvision.models as models
 
-# ===================== KONFIGURACJA =====================
+# ===================== KONFIGURACJA ================================================================================================================
 CAMERA_ID = 0
 USE_CUDA = True
 PATTERNS_DIR = "patterns_database"
-# ==========================================================
 
 # Utwórz katalog na wzorce
 Path(PATTERNS_DIR).mkdir(exist_ok=True)
 
-# ---------- Inicjalizacja YOLO ----------
+
+# ---------- Inicjalizacja YOLO ----------------------------------------------------------------------------------------------------------------------
 model_yolo = YOLO('yolov8n.pt')
 if USE_CUDA and torch.cuda.is_available():
     model_yolo.to('cuda')
@@ -34,10 +39,10 @@ if USE_CUDA and torch.cuda.is_available():
 else:
     print("YOLO na CPU")
 
-# Lista klas COCO
+# Klasy obiektow Coco  posortowane alfabetycznie dla łatwiejszego wyszukiwania w interfejsie
 COCO_CLASSES = sorted(model_yolo.names.values())
 
-# ---------- Modele embeddingowe ----------
+# ---------- Modele embeddingowe -------------------------------------------------
 device = torch.device('cuda' if USE_CUDA and torch.cuda.is_available() else 'cpu')
 
 def build_osnet():
@@ -51,51 +56,60 @@ def build_osnet():
         return None
 
 def build_efficientnet():
-    import torchvision.models as models
+    
     efficientnet = models.efficientnet_b0(pretrained=True)
     model = torch.nn.Sequential(*list(efficientnet.children())[:-1]).to(device).eval()
     return model
 
 osnet_model = build_osnet()
 effnet_model = build_efficientnet()
-import numpy as np
-from sklearn.cluster import AgglomerativeClustering
-from collections import defaultdict
 
-def get_embedding_crop(crop, class_name):
-    """Helper do generowania embeddingu (używany przez kamerę)."""
-    if class_name == 'person' and osnet_model is not None:
-        img = cv2.resize(crop, (128,256))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)/255.0
-        tensor = torch.from_numpy(img).permute(2,0,1).float().unsqueeze(0).to(device)
+# ---------- Funkcje embeddingowe ----------
+def get_embedding(image_crop, target_class):
+    """Generuj embedding dla obiektu"""
+    if image_crop.size == 0:
+        return None
+    
+    if target_class == 'person' and osnet_model is not None:
+        # OSNet dla osób
+        img = cv2.resize(image_crop, (128, 256))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
+        img_tensor = torch.from_numpy(img).permute(2, 0, 1).float().unsqueeze(0).to(device)
         with torch.no_grad():
-            feat = osnet_model(tensor)
+            features = osnet_model(img_tensor)
     else:
-        from torchvision import transforms
+        # EfficientNet dla pozostałych
         preprocess = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((224,224)),
+            transforms.Resize((224, 224)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
-        img_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
-        tensor = preprocess(img_rgb).unsqueeze(0).to(device)
+        img_rgb = cv2.cvtColor(image_crop, cv2.COLOR_BGR2RGB)
+        img_tensor = preprocess(img_rgb).unsqueeze(0).to(device)
         with torch.no_grad():
-            feat = effnet_model(tensor)
-    return feat.flatten().cpu().numpy()
+            features = effnet_model(img_tensor)
+    
+    return features.flatten().cpu().numpy()
+
+
+def compare_embeddings(emb1, emb2):
+    """Porównanie embeddingow odleglosc cosinusowa - analogia dzialania: kierunek wektorow jako identyczny obiekt"""
+    return 1 - cosine(emb1.flatten(), emb2.flatten())
+
+
 
 class SingleImageInstanceAnalyzer:
     """Analizuje pojedynczy obraz – wykrywa obiekty wszystkich klas i
     nadaje unikalne ID egzemplarzom tej samej klasy (grupy wizualne)."""
-
     def __init__(self, model_yolo, device, osnet_model, effnet_model):
         self.detector = model_yolo
         self.device = device
         self.osnet = osnet_model
         self.effnet = effnet_model
-
     def get_embedding(self, crop, class_name):
-        """Tak samo jak wcześniej – zwraca embedding dla wycinka."""
+        """Duplikacja funkcji z poza klasy"""
+        #Mozliwa koniecznosc zachowania jej na chwile dluzej
         if crop.size == 0:
             return None
         if class_name == 'person' and self.osnet is not None:
@@ -105,21 +119,21 @@ class SingleImageInstanceAnalyzer:
             with torch.no_grad():
                 feat = self.osnet(img_tensor)
         else:
-            from torchvision import transforms
             preprocess = transforms.Compose([
                 transforms.ToPILImage(),
                 transforms.Resize((224,224)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
             ])
-            img_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+            img_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB) #tzw. rozbicie kolorow
             img_tensor = preprocess(img_rgb).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 feat = self.effnet(img_tensor)
         return feat.flatten().cpu().numpy()
 
+
     def process_image(self, image_path):
-        """Główna funkcja – zwraca obraz z adnotacjami i słownik detekcji."""
+        """Główna funkcja procesowania - zwraca obraz z adnotacjami i słownik detekcji."""
         img = cv2.imread(image_path)
         if img is None:
             raise FileNotFoundError(f"Nie można wczytać: {image_path}")
@@ -321,40 +335,6 @@ class PatternsDatabase:
 
 # Inicjalizacja bazy
 patterns_db = PatternsDatabase()
-
-# ---------- Funkcje embeddingowe ----------
-def get_embedding(image_crop, target_class):
-    """Generuj embedding dla obiektu"""
-    if image_crop.size == 0:
-        return None
-    
-    if target_class == 'person' and osnet_model is not None:
-        # OSNet dla osób
-        img = cv2.resize(image_crop, (128, 256))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
-        img_tensor = torch.from_numpy(img).permute(2, 0, 1).float().unsqueeze(0).to(device)
-        with torch.no_grad():
-            features = osnet_model(img_tensor)
-    else:
-        # EfficientNet dla pozostałych
-        from torchvision import transforms
-        preprocess = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
-        img_rgb = cv2.cvtColor(image_crop, cv2.COLOR_BGR2RGB)
-        img_tensor = preprocess(img_rgb).unsqueeze(0).to(device)
-        with torch.no_grad():
-            features = effnet_model(img_tensor)
-    
-    return features.flatten().cpu().numpy()
-
-def compare_embeddings(emb1, emb2):
-    """Porównaj embeddingi (podobieństwo cosinusowe)"""
-    return 1 - cosine(emb1.flatten(), emb2.flatten())
-
 # ---------- Funkcje detekcji i rozpoznawania ----------
 def detect_all_objects(image):
     """Wykryj WSZYSTKIE obiekty na obrazie"""
@@ -530,16 +510,14 @@ def run_camera_test():
     cap.release()
     cv2.destroyWindow("Test z kamery (wszystkie klasy)")
 
-# ---------- GUI Tkinter ----------
+# ---------- GUI Tkinter ---------------------------------------------------------------------------------------------------------------------------------------------
 class App:
     def __init__(self, root):
         self.root = root
         root.title("System rozpoznawania obiektów - Multi-Class")
-        root.geometry("800x600")
-        
+        root.geometry("1200x1000")
         # Sprawdź modele
         self.osnet_available = osnet_model is not None
-        
         # Konfiguracja interfejsu
         self.setup_ui()
         self.refresh_patterns_list()
@@ -564,9 +542,11 @@ class App:
         list_frame = ttk.Frame(notebook)
         notebook.add(list_frame, text="Lista wzorców")
         self.setup_list_tab(list_frame)
+        # Zakladka 4 : analiza
         quick_frame = ttk.Frame(notebook)
-        notebook.add(quick_frame, text="Szybka analiza")
+        notebook.add(quick_frame, text="Analiza")
         self.setup_quick_tab(quick_frame)
+        
         # Status bar
         self.status_var = tk.StringVar(value="Gotowy. Wybierz zakładkę.")
         status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN)

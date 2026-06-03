@@ -1,20 +1,17 @@
 ## Zespół uno
-*Ludzie*
+*Ludzie + inne obiekty*
 Łukasz
 Diego
+Maks 
 
 ## Zespół two
-*pojazdy*
-Maks 
-Paweł
+*pojazdy - inne obiekty*
+Olek
+Hubert
+
+Paweł ?
 
 ## Zespół drei
 *Ludzie*
 Mateusz
 Seweryn
-
-## Zespół czwarty
-*Pojazdy*
-Olek
-Hubert
-Piotr
