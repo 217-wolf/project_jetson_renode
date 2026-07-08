@@ -1,5 +1,4 @@
-## Pytania w kontekście projektu: [[Projekt Rozpoznawania obiektów - Nvidia Jetson + Renode]]
-
+## Pytania w kontekście projektu
 Czy to ma tylko unikalnych ludzi rozpoznawać czy również inne obiekty, i jeśli je też to czy również unikatowo?
 
 Podział pracy? (broad subject)

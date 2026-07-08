@@ -1,0 +1,68 @@
+{
+  "bus": [
+    {
+      "name": "bus_001",
+      "confidence": 0.9292677640914917,
+      "timestamp": "2026-07-08T12:50:01.550960",
+      "metadata": {}
+    }
+  ],
+  "person": [
+    {
+      "name": "person_002",
+      "confidence": 0.7731238603591919,
+      "timestamp": "2026-07-08T12:50:01.675872",
+      "metadata": {}
+    },
+    {
+      "name": "person_003",
+      "confidence": 0.7349138259887695,
+      "timestamp": "2026-07-08T12:50:01.803708",
+      "metadata": {}
+    },
+    {
+      "name": "person_004",
+      "confidence": 0.6123219132423401,
+      "timestamp": "2026-07-08T12:50:01.948098",
+      "metadata": {}
+    },
+    {
+      "name": "person_005",
+      "confidence": 0.4230555295944214,
+      "timestamp": "2026-07-08T12:50:02.093727",
+      "metadata": {}
+    },
+    {
+      "name": "person_006",
+      "confidence": 0.3752777576446533,
+      "timestamp": "2026-07-08T12:50:02.301567",
+      "metadata": {}
+    },
+    {
+      "name": "person_008",
+      "confidence": 0.3460199236869812,
+      "timestamp": "2026-07-08T12:50:02.792354",
+      "metadata": {}
+    },
+    {
+      "name": "person_009",
+      "confidence": 0.31207284331321716,
+      "timestamp": "2026-07-08T12:50:03.175286",
+      "metadata": {}
+    },
+    {
+      "name": "person_010",
+      "confidence": 0.27803802490234375,
+      "timestamp": "2026-07-08T12:50:03.437928",
+      "metadata": {}
+    }
+  ],
+  "horse": [
+    {
+      "name": "horse_007",
+      "confidence": 0.3525889813899994,
+      "timestamp": "2026-07-08T12:50:02.618187",
+      "metadata": {}
+    }
+  ]
+}
