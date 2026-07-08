@@ -9,7 +9,6 @@ import cv2, torch, json, sys, os
 from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
-
 import numpy as np
 from scipy.spatial.distance import cosine
 from sklearn.cluster import AgglomerativeClustering
@@ -49,7 +48,7 @@ class FeatureExtractor:
             transforms.ToPILImage(),
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) 
         ])
         self.osnet = None
         try:
@@ -82,7 +81,7 @@ feature_extractor = FeatureExtractor()
 
 # -------------------------- BAZA WZORCÓW ---------------------------------------
 class PatternsDatabase:
-    # (bez zmian – pełna implementacja jak w poprzednim kodzie)
+    
     def __init__(self):
         self.patterns = {}
         self._load()
@@ -194,7 +193,7 @@ def match_object(embedding, class_name):
     return best_match, best_sim
 
 class SingleImageInstanceAnalyzer:
-    # (bez zmian)
+    
     def __init__(self, detector, device, feature_extractor):
         self.detector = detector
         self.device = device

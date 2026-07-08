@@ -8,7 +8,7 @@
 
 ### verify wymagania, zwalidowac dzialanie
 Kod dziala ale nie poprawnie w sensie idei
-<br>Wspoomozenie LLM bedzie wadliwe
+<br>Wspomozenie LLM bedzie wadliwe
 chodzi o miejsce w ktorym rozpoznawanie lub zapisywanie wzorca moze psuc jakosc
 
 ### stworzenie arhchitektury dzialania - podejscie holistyczno systemowe
@@ -19,5 +19,3 @@ chodzi o miejsce w ktorym rozpoznawanie lub zapisywanie wzorca moze psuc jakosc
 ### Lista rozwijana dostepnych kamer - ulatwienie uruchomienia
 
 ### rozpoznawanie wzorca natychmiastowe i dobre dzialanie rozpoznania w trakcie pracy 
-
-$ F^{*} = max_{x \in X} (Q(x))$ &nbsp;&nbsp;&nbsp;&nbsp; ,where x = quality
