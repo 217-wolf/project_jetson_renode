@@ -68,13 +68,12 @@ class ImageAnalyzer:
                 items[0]['instance_id'] = 1
             elif n > 1:
                 embeddings = np.array([item['embedding'] for item in items])
-                
+
                 clustering = AgglomerativeClustering(
                     n_clusters = None,
                     distance_threshold = self.cluster_config['distance_threshold'],
                     metric = self.cluster_config['metric'],
-                    linkage = self.cluster_config['linkage']
-                )
+                    linkage = self.cluster_config['linkage'])
                 
                 labels = clustering.fit_predict(embeddings)
                 
@@ -82,7 +81,7 @@ class ImageAnalyzer:
                 unique_labels = sorted(set(labels))
                 label_to_id = {lab: i + 1 for i, lab in enumerate(unique_labels)}
                 
-                for detection, lab in zip(items, labels):
-                    detection['instance_id'] = label_to_id[lab]
-        
+                for detection, label in zip(items, labels):
+                    detection['instance_id'] = label_to_id[label]
+        #informacja do debugu
         logger.debug(f"Przydzielono ID dla {len(detections)} obiektów")

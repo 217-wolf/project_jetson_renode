@@ -1,20 +1,20 @@
 """Moduł zarządzania bazą wzorców."""
-import json
+
 import numpy as np
+
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
-import yaml
-import logging
+import logging, yaml, json
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) #do debugu
 
 class PatternsDatabase:
     """Baza wzorców obiektów."""
     
     def __init__(self, config_path: str = "config.yaml"):
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
+        with open(config_path) as file:
+            config = yaml.safe_load(file)
         
         self.db_path = Path(config['patterns']['database_path'])
         self.db_path.mkdir(exist_ok=True)
@@ -25,16 +25,18 @@ class PatternsDatabase:
         """Wczytaj wszystkie wzorce z dysku."""
         meta_file = self.db_path / "metadata.json"
         if not meta_file.exists():
-            logger.info("Baza wzorców jest pusta")
+            logger.info("Baza wzorców jest pusta") #informacja do debugu o bazie wzrocow
             return
         
-        with open(meta_file) as f:
-            metadata = json.load(f)
+        with open(meta_file) as file:
+            metadata = json.load(file)
         
         for class_name, patterns_list in metadata.items():
             self.patterns[class_name] = []
             for pattern_info in patterns_list:
-                emb_file = self.db_path / f"{pattern_info['name']}_{class_name}.npy"
+                #emb_file = self.db_path / f"{pattern_info['name']}_{class_name}.npy"
+                #usuniecie nazwy klasy - nazwa klasy jest w ['name']
+                emb_file = self.db_path / f"{pattern_info['name']}.npy"
                 if emb_file.exists():
                     embedding = np.load(emb_file)
                     self.patterns[class_name].append({
@@ -42,8 +44,7 @@ class PatternsDatabase:
                         'embedding': embedding,
                         'confidence': pattern_info.get('confidence', 0.0),
                         'timestamp': pattern_info.get('timestamp', ''),
-                        'metadata': pattern_info.get('metadata', {})
-                    })
+                        'metadata': pattern_info.get('metadata', {})})
         
         total = sum(len(v) for v in self.patterns.values())
         logger.info(f"Wczytano {total} wzorców dla {len(self.patterns)} klas")
@@ -63,8 +64,7 @@ class PatternsDatabase:
                     'name': pattern['name'],
                     'confidence': pattern['confidence'],
                     'timestamp': pattern['timestamp'],
-                    'metadata': pattern.get('metadata', {})
-                })
+                    'metadata': pattern.get('metadata', {})})
         
         with open(self.db_path / "metadata.json", 'w') as f:
             json.dump(metadata, f, indent=2)
@@ -73,7 +73,7 @@ class PatternsDatabase:
                    embedding: np.ndarray, confidence: float = 0.0,
                    metadata: Dict = None) -> bool:
         """
-        Dodaj nowy wzorzec.
+        Dodanie nowego wzorca
         
         Args:
             name: Nazwa wzorca
@@ -83,23 +83,24 @@ class PatternsDatabase:
             metadata: Dodatkowe metadane
             
         Returns:
-            True jeśli dodano pomyślnie
+            True, jeśli dodano pomyślnie
         """
         if class_name not in self.patterns:
             self.patterns[class_name] = []
         
         # Sprawdź czy wzorzec o tej nazwie już istnieje
-        for p in self.patterns[class_name]:
-            if p['name'] == name:
-                p['embedding'] = embedding
-                p['confidence'] = confidence
-                p['timestamp'] = datetime.now().isoformat()
-                p['metadata'] = metadata or {}
+            #aktualizacja istniejacych
+        for pattern in self.patterns[class_name]:
+            if pattern['name'] == name:
+                pattern['embedding'] = embedding
+                pattern['confidence'] = confidence
+                pattern['timestamp'] = datetime.now().isoformat()
+                pattern['metadata'] = metadata or {}
                 self._save()
-                logger.info(f"Zaktualizowano wzorzec: {name} ({class_name})")
+                logger.info(f"Zaktualizowano wzorzec: {name} ({class_name})") #informacja do debugu o aktualizacji wzorca
                 return True
         
-        # Dodaj nowy
+        # Dodanie nowego
         self.patterns[class_name].append({
             'name': name,
             'embedding': embedding,
@@ -109,51 +110,36 @@ class PatternsDatabase:
         })
         
         self._save()
-        logger.info(f"Dodano wzorzec: {name} ({class_name})")
+        logger.info(f"Dodano wzorzec: {name} ({class_name})") #Informacja dodania wzorca
         return True
     
     def remove_pattern(self, name: str, class_name: str = None) -> bool:
-        """
-        Usuń wzorzec.
-        
-        Args:
-            name: Nazwa wzorca
-            class_name: Klasa (None = wszystkie klasy)
-            
-        Returns:
-            True jeśli usunięto
-        """
         classes = [class_name] if class_name else list(self.patterns.keys())
         removed = False
         
-        for cls in classes:
-            if cls in self.patterns:
-                original_len = len(self.patterns[cls])
-                self.patterns[cls] = [p for p in self.patterns[cls] 
-                                     if p['name'] != name]
-                if len(self.patterns[cls]) < original_len:
-                    # Usuń plik embeddingu
-                    emb_file = self.db_path / f"{name}_{cls}.npy"
+        for klasa in classes:
+            if klasa in self.patterns:
+                original_len = len(self.patterns[klasa])
+                self.patterns[klasa] = [pattern for pattern in self.patterns[klasa] if pattern['name'] != name]
+                if len(self.patterns[klasa]) < original_len:
+                    emb_file = self.db_path / f"{name}_{klasa}.npy"
                     if emb_file.exists():
                         emb_file.unlink()
                     removed = True
-                    
+
                     # Usuń klasę jeśli pusta
-                    if not self.patterns[cls]:
-                        del self.patterns[cls]
-        
+                    if not self.patterns[klasa]:
+                        del self.patterns[klasa]
         if removed:
             self._save()
             logger.info(f"Usunięto wzorzec: {name}")
-        
         return removed
     
-    def get_patterns(self, class_name: str) -> List[Dict]:
-        """Pobierz wszystkie wzorce dla danej klasy."""
+    #Pobierz wszystkie wzorce dla jednej klasy.
+    def get_patterns_klasa(self, class_name: str) -> List[Dict]:
         return self.patterns.get(class_name, [])
     
     def get_all_patterns(self) -> List[Dict]:
-        """Pobierz listę wszystkich wzorców."""
         all_patterns = []
         for class_name, patterns_list in self.patterns.items():
             for pattern in patterns_list:
@@ -167,13 +153,11 @@ class PatternsDatabase:
         return sorted(all_patterns, key=lambda x: (x['class'], x['name']))
     
     def get_statistics(self) -> Dict:
-        """Pobierz statystyki bazy."""
         total = sum(len(v) for v in self.patterns.values())
         return {
             'total_patterns': total,
             'total_classes': len(self.patterns),
-            'classes': {k: len(v) for k, v in self.patterns.items()}
-        }
+            'classes': {k: len(v) for k, v in self.patterns.items()}}
     
     def clear(self):
         """Usuń wszystkie wzorce."""
@@ -181,4 +165,4 @@ class PatternsDatabase:
         # Usuń wszystkie pliki
         for file in self.db_path.glob("*"):
             file.unlink()
-        logger.info("Baza wzorców wyczyszczona")
+        logger.info("Baza wzorców wyczyszczona") #informacja o wyczyszczeniu wszystkich wzorcow

@@ -1,18 +1,18 @@
 """Moduł obsługi kamery."""
 import cv2
 import numpy as np
-import yaml
-import logging
+
+import logging, yaml
 from typing import Optional, Tuple
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) #do debugu
 
 class CameraManager:
     """Zarządza połączeniem z kamerą."""
     
     def __init__(self, config_path: str = "config.yaml"):
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
+        with open(config_path) as file:
+            config = yaml.safe_load(file)
         
         self.config = config['camera']
         self.cap = None
@@ -21,17 +21,17 @@ class CameraManager:
         """Otwórz połączenie z kamerą."""
         backend = self.config.get('backend', 'V4L2')
         
-        if backend == 'V4L2':
-            self.cap = cv2.VideoCapture(self.config['device_id'], cv2.CAP_V4L2)
-        elif backend == 'GSTREAMER':
+        
+        if backend == 'GSTREAMER':
             # Dla Jetson - użyj GStreamer pipeline
             pipeline = (
                 f"v4l2src device=/dev/video{self.config['device_id']} ! "
                 "video/x-raw, width=640, height=480 ! "
                 "nvvidconv ! video/x-raw, format=BGRx ! "
-                "videoconvert ! video/x-raw, format=BGR ! appsink"
-            )
+                "videoconvert ! video/x-raw, format=BGR ! appsink")
             self.cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
+        elif backend == 'V4L2':
+            self.cap = cv2.VideoCapture(self.config['device_id'], cv2.CAP_V4L2)
         else:
             self.cap = cv2.VideoCapture(self.config['device_id'])
         
@@ -48,16 +48,15 @@ class CameraManager:
     
     def read_frame(self) -> Tuple[bool, Optional[np.ndarray]]:
         """Odczytaj klatkę z kamery."""
+
         if self.cap is None or not self.cap.isOpened():
             return False, None
         
-        ret, frame = self.cap.read()
-        return ret, frame
+        returned_, frame = self.cap.read()
+        return returned_, frame #returned_ jest to boolean
     
-    def capture_photo(self, window_name: str = "Kamera", 
-                     prompt: str = "SPACJA - zdjęcie, ESC - anuluj") -> Optional[np.ndarray]:
-        """
-        Przechwyć pojedyncze zdjęcie.
+    def capture_photo(self, window_name: str = "Kamera", prompt: str = "SPACJA - zdjęcie, ESC - anuluj") -> Optional[np.ndarray]:
+        """ Przechwyć pojedyncze zdjęcie.
         
         Args:
             window_name: Nazwa okna
@@ -70,16 +69,14 @@ class CameraManager:
             return None
         
         captured = None
-        
         while True:
-            ret, frame = self.read_frame()
-            if not ret:
+            returned_, frame = self.read_frame()
+            if not returned_:
                 break
             
             # Wyświetl instrukcję
             display = frame.copy()
-            cv2.putText(display, prompt, (10, 30), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            cv2.putText(display, prompt, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2) #Guys, simplex came back
             cv2.imshow(window_name, display)
             
             key = cv2.waitKey(30) & 0xFF
@@ -95,7 +92,9 @@ class CameraManager:
     
     def close(self):
         """Zamknij połączenie z kamerą."""
+
         if self.cap is not None:
             self.cap.release()
             self.cap = None
-            logger.info("Kamera zamknięta")
+
+            logger.info("Kamera zamknięta") # do debugu

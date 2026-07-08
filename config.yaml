@@ -27,7 +27,7 @@ camera:
 patterns:
   database_path: "patterns_database"
   matching_threshold:
-    person: 0.78
+    person: 0.75
     default: 0.80
 
 clustering:

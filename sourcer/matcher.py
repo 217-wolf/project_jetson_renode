@@ -27,7 +27,7 @@ class ObjectMatcher:
         Returns:
             (nazwa_dopasowania, podobieństwo) - (None, 0.0) jeśli nie dopasowano
         """
-        patterns = self.database.get_patterns(class_name)
+        patterns = self.database.get_patterns_klasa(class_name)
         if not patterns:
             logger.debug(f"Brak wzorców dla klasy: {class_name}")
             return None, 0.0
