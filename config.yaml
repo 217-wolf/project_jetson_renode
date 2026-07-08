@@ -1,0 +1,40 @@
+#nie zweryfikowany kod
+# Konfiguracja systemu
+system:
+  device: "cuda"  # cuda, cpu
+  use_half_precision: true  # dla GPU
+  log_level: "INFO"
+
+models:
+  yolo:
+    path: "models/yolov8n.pt"
+    engine_path: "models/yolov8n.engine"  # TensorRT
+    confidence_threshold: 0.25
+    image_size: 640
+
+  feature_extractor:
+    type: "efficientnet"  # efficientnet, osnet
+    model_name: "efficientnet_b0"
+    use_osnet_for_persons: true
+    image_size: 224
+
+camera:
+  device_id: 0
+  width: 640
+  height: 480
+  backend: "V4L2"  # V4L2, GSTREAMER
+
+patterns:
+  database_path: "patterns_database"
+  matching_threshold:
+    person: 0.75
+    default: 0.85
+
+clustering:
+  distance_threshold: 0.1
+  metric: "cosine"
+  linkage: "average"
+
+gui:
+  window_title: "System Rozpoznawania Obiektów"
+  window_size: [800, 600]
