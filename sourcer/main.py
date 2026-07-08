@@ -4,20 +4,21 @@ Główny punkt wejścia systemu.
 Użycie:
     python main.py [--mode MODE] [--image PATH]
 Tryby:
-    gui        – uruchom interfejs graficzny (domyślnie)
-    analyze    – analiza pojedynczego obrazu z ID instancji
-    camera     – test z kamery na żywo
-    add-all    – dodaj wszystkie obiekty z obrazu jako wzorce
+    gui        - uruchom interfejs graficzny (domyślne - zawiera pozostałe tryby)
+    analyze    - analiza pojedynczego obrazu z ID instancji
+    camera     - test z kamery na żywo
+    add-all    - dodaj wszystkie obiekty z obrazu jako wzorce
 """
-import argparse
-import sys
+
 import cv2
-import logging
+
+import logging, argparse, sys
 from pathlib import Path
 
-# Dodaj katalog src do ścieżki (umożliwia import modułów)
+# Dodaj katalog sourcer do ścieżki (umożliwia import modułów)
 sys.path.insert(0, str(Path(__file__).parent))
 
+#import modułów
 from detector import ObjectDetector
 from extractor import FeatureExtractor
 from database import PatternsDatabase
@@ -26,9 +27,8 @@ from visualizer import Visualizer
 from camera import CameraManager
 from analyzer import ImageAnalyzer
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__) # informacja nazwy modułu
 
 def analyze_image_mode(image_path: str):
     """Tryb analizy pojedynczego obrazu (ID instancji)."""
@@ -71,10 +71,10 @@ def camera_test_mode():
         logger.error("Nie można otworzyć kamery")
         return
 
-    logger.info("Kamera uruchomiona. Naciśnij 'q', aby zakończyć.")
+    logger.info("Kamera uruchomiona. Naciśnij 'q' / 'Esc', aby zakończyć.")
     while True:
-        ret, frame = cam.read_frame()
-        if not ret:
+        returned_, frame = cam.read_frame()
+        if not returned_:
             break
 
         # Wykrywanie
@@ -96,15 +96,13 @@ def camera_test_mode():
         # Wizualizacja
         annotated = visualizer.draw_detections(frame, detections)
         cv2.imshow("Test z kamery", annotated)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q') or key == 27:
             break
-
     cam.close()
     cv2.destroyAllWindows()
 
 def add_all_patterns_mode(image_path: str):
-    """Dodaj wszystkie wykryte obiekty z obrazu jako wzorce."""
     detector = ObjectDetector()
     extractor = FeatureExtractor()
     database = PatternsDatabase()
@@ -113,7 +111,6 @@ def add_all_patterns_mode(image_path: str):
     if img is None:
         logger.error(f"Nie można wczytać: {image_path}")
         return
-
     detections = detector.detect(img)
     added = 0
     for i, det in enumerate(detections):
@@ -125,7 +122,7 @@ def add_all_patterns_mode(image_path: str):
             database.add_pattern(name, det['class'], emb, det['confidence'])
             added += 1
 
-    logger.info(f"Dodano {added} wzorców z obrazu {image_path}")
+    logger.info(f"Dodano {added} wzorców z obrazu {image_path}") # informacja o dodaniu wzorców
 
 def main():
     parser = argparse.ArgumentParser(description="System rozpoznawania obiektów")

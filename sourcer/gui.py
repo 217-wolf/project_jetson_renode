@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Interfejs graficzny systemu – zakładki do zarządzania wzorcami, testów i szybkiej analizy.
-Wykorzystuje moduły: detector, extractor, database, matcher, visualizer, camera, analyzer.
+Interfejs graficzny systemu - zakładki do zarządzania wzorcami, testów i szybkiej analizy.
+Wykorzystuje moduły funkcyjne.
 """
+#import pythona
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import cv2
 import logging
 from pathlib import Path
 from datetime import datetime
@@ -20,13 +20,16 @@ from visualizer import Visualizer
 from camera import CameraManager
 from analyzer import ImageAnalyzer
 
-logger = logging.getLogger(__name__)
+#import zewnętrzny
+import cv2
+
+logger = logging.getLogger(__name__) #informacja o nazwie modułu
 
 class MainApplication:
     """Główna klasa aplikacji GUI."""
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("System rozpoznawania obiektów – Jetson")
+        self.root.title("System Identyfikacji Obiektów- SIO")
         self.root.geometry("900x650")
 
         # Komponenty systemu (leniwa inicjalizacja)
@@ -50,13 +53,12 @@ class MainApplication:
         self.analyzer = ImageAnalyzer(self.detector, self.extractor)
 
     def _setup_ui(self):
-        """Konfiguracja interfejsu zakładkowego."""
         nb = ttk.Notebook(self.root)
         nb.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # Zakładki
         nb.add(self._create_add_tab(), text="Dodaj wzorce")
-        nb.add(self._create_test_tab(), text="Test")
+        nb.add(self._create_test_tab(), text="Test działania")
         nb.add(self._create_list_tab(), text="Lista wzorców")
         nb.add(self._create_quick_tab(), text="Szybka analiza")
 
@@ -65,12 +67,12 @@ class MainApplication:
         ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN)\
             .pack(fill=tk.X, side=tk.BOTTOM)
 
-    # ------------------------ Zakładka: Dodawanie wzorców ------------------------
+    # Zakładka - dodawania wzorców --------------------------------------------------
     def _create_add_tab(self):
-        f = ttk.Frame()
+        frame = ttk.Frame()
 
         # Pojedynczy wzorzec
-        sf = ttk.LabelFrame(f, text="Dodaj pojedynczy wzorzec")
+        sf = ttk.LabelFrame(frame, text="Dodaj pojedynczy wzorzec")
         sf.pack(fill=tk.X, padx=10, pady=5)
 
         ttk.Label(sf, text="Nazwa:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
@@ -94,14 +96,14 @@ class MainApplication:
             .grid(row=4, column=0, columnspan=2, pady=10)
 
         # Wiele wzorców z obrazu
-        mf = ttk.LabelFrame(f, text="Dodaj wszystkie obiekty z obrazu jako wzorce")
+        mf = ttk.LabelFrame(frame, text="Dodaj wszystkie obiekty z obrazu jako wzorce")
         mf.pack(fill=tk.X, padx=10, pady=5)
-        ttk.Label(mf, text="Każdy wykryty obiekt zostanie zapisany jako klasa_001, klasa_002, ...")\
+        ttk.Label(mf, text="Każdy wykryty obiekt zostanie zapisany jako klasa_001, klasa_002, ... etc.")\
             .pack(pady=5)
         ttk.Button(mf, text="Z PLIKU", command=self._add_all_file).pack(pady=3)
         ttk.Button(mf, text="Z KAMERY", command=self._add_all_camera).pack(pady=3)
 
-        return f
+        return frame
 
     def _add_single_pattern(self):
         name = self.name_var.get().strip()
@@ -174,7 +176,7 @@ class MainApplication:
         messagebox.showinfo("Gotowe", f"Dodano {added} wzorców")
         self.refresh_patterns_list()
 
-    # ------------------------ Zakładka: Test ------------------------
+    #Zakładka - Testu -------------------------------------------------------------------------
     def _create_test_tab(self):
         f = ttk.Frame()
         sf = ttk.LabelFrame(f, text="Źródło testu")
@@ -209,17 +211,17 @@ class MainApplication:
 
     def _process_test_image(self, img, path=None):
         detections = self.detector.detect(img)
-        for det in detections:
-            x1,y1,x2,y2 = det['bbox']
+        for detection in detections:
+            x1,y1,x2,y2 = detection['bbox']
             crop = img[y1:y2, x1:x2]
-            emb = self.extractor.extract(crop, det['class'])
-            if emb is not None:
-                match, sim = self.matcher.match(emb, det['class'])
-                det['match'] = match or 'UNKNOWN'
-                det['similarity'] = sim
+            embedding = self.extractor.extract(crop, detection['class'])
+            if embedding is not None:
+                match, sim = self.matcher.match(embedding, detection['class'])
+                detection['match'] = match or 'UNKNOWN'
+                detection['similarity'] = sim
             else:
-                det['match'] = 'UNKNOWN'
-                det['similarity'] = 0.0
+                detection['match'] = 'UNKNOWN'
+                detection['similarity'] = 0.0
 
         annotated = self.visualizer.draw_detections(img, detections)
         out = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
@@ -235,7 +237,7 @@ class MainApplication:
             messagebox.showerror("Błąd", "Nie można otworzyć kamery")
             return
 
-        logger.info("Kamera live – naciśnij 'q' aby zakończyć")
+        logger.info("Kamera live - naciśnij  'q' / 'Esc' aby zakończyć") #informacja o sposobie zamknięcia
         while True:
             ret, frame = self.camera.read_frame()
             if not ret:
@@ -254,7 +256,8 @@ class MainApplication:
                     det['similarity'] = 0.0
             annotated = self.visualizer.draw_detections(frame, detections)
             cv2.imshow("Test z kamery", annotated)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q') or key == 27:
                 break
         self.camera.close()
         cv2.destroyWindow("Test z kamery")
@@ -278,7 +281,7 @@ class MainApplication:
         self.results_text.insert(tk.END, f"\nRAZEM: {total}, rozpoznanych: {matched}\n")
         self.status_var.set(f"Test zakończony – {matched}/{total}")
 
-    # ------------------------ Zakładka: Lista wzorców ------------------------
+    #Zakładka listy wzorców ----------------------------------------------------------------------------------
     def _create_list_tab(self):
         f = ttk.Frame()
         btnf = ttk.Frame(f)
@@ -328,12 +331,12 @@ class MainApplication:
             self.refresh_patterns_list()
             messagebox.showinfo("Gotowe", "Wszystkie wzorce usunięte")
 
-    # ------------------------ Zakładka: Szybka analiza ------------------------
+    #Zakładka: Szybka analiza ------------------------
     def _create_quick_tab(self):
         f = ttk.Frame()
         ttk.Label(f, text="Analiza pojedynczego zdjęcia – unikalne ID wizualne.")\
             .pack(pady=10)
-        ttk.Button(f, text="WYBIERZ ZDJĘCIE I ANALIZUJ", command=self._quick_analysis)\
+        ttk.Button(f, text="Wybierz zdjęcie i analizuj", command=self._quick_analysis)\
             .pack(pady=15)
         self.quick_text = tk.Text(f, height=10, width=80)
         self.quick_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
@@ -365,5 +368,4 @@ class MainApplication:
         self.status_var.set(f"Analiza zakończona – wynik: {out}")
 
     def run(self):
-        """Uruchom główną pętlę GUI."""
         self.root.mainloop()

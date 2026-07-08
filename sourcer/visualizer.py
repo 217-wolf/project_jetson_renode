@@ -7,22 +7,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Visualizer:
-    """Wizualizuje wyniki detekcji na obrazie."""
+    """Wizualizacja wyników detekcji na obrazie."""
     
     def __init__(self):
         self.colors = {}
     
     def draw_detections(self, image: np.ndarray, detections: List[Dict]) -> np.ndarray:
-        """
-        Narysuj detekcje na obrazie.
-        
-        Args:
-            image: Obraz wejściowy
-            detections: Lista detekcji z polami: bbox, class, confidence, match, similarity
-            
-        Returns:
-            Obraz z narysowanymi ramkami
-        """
         annotated = image.copy()
         
         for det in detections:
@@ -70,11 +60,11 @@ class Visualizer:
         """
         annotated = image.copy()
         
-        for det in detections:
-            x1, y1, x2, y2 = det['bbox']
-            class_name = det['class']
-            instance_id = det.get('instance_id', 0)
-            confidence = det.get('confidence', 0.0)
+        for detection in detections:
+            x1, y1, x2, y2 = detection['bbox']
+            class_name = detection['class']
+            instance_id = detection.get('instance_id', 0)
+            confidence = detection.get('confidence', 0.0)
             
             color = self._color_for_id(instance_id)
             label = f"{class_name}_{instance_id} | {confidence:.2f}"
@@ -84,7 +74,6 @@ class Visualizer:
             cv2.rectangle(annotated, (x1, y1 - th - 5), (x1 + tw, y1), color, -1)
             cv2.putText(annotated, label, (x1, y1 - 5), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-        
         return annotated
     
     def _get_color(self, name: str) -> Tuple[int, int, int]:

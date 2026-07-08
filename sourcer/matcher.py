@@ -1,31 +1,31 @@
 """Moduł dopasowywania obiektów do wzorców."""
 import numpy as np
 from scipy.spatial.distance import cosine
-from typing import Optional, Tuple, Dict, List
-import yaml
-import logging
 
-logger = logging.getLogger(__name__)
+from typing import Optional, Tuple, Dict, List
+import logging, yaml
+
+logger = logging.getLogger(__name__) #informacja o module
 
 class ObjectMatcher:
     """Dopasowuje wykryte obiekty do bazy wzorców."""
-    
+
     def __init__(self, database, config_path: str = "config.yaml"):
         self.database = database
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
+        with open(config_path) as file:
+            config = yaml.safe_load(file)
         self.thresholds = config['patterns']['matching_threshold']
     
     def match(self, embedding: np.ndarray, class_name: str) -> Tuple[Optional[str], float]:
         """
-        Dopasuj embedding do wzorca.
+        Dopasowanie embeddingu do wzorca.
         
         Args:
             embedding: Wektor cech obiektu
             class_name: Klasa obiektu
             
         Returns:
-            (nazwa_dopasowania, podobieństwo) - (None, 0.0) jeśli nie dopasowano
+            (nazwa_dopasowania, podobieństwo)
         """
         patterns = self.database.get_patterns_klasa(class_name)
         if not patterns:
