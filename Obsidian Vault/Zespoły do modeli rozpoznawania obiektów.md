@@ -1,20 +1,14 @@
 ## Zespół uno
 *Ludzie*
 Olek 
-Łukasz
+Hubert
+Maks
 
 ## Zespół two
-*pojazdy*
-Maks 
+Łukasz 
 Diego
 
 ## Zespół drei
 *Ludzie*
 Mateusz
 Seweryn
-
-## Zespół czwarty
-*Pojazdy*
-Hubert
-Piotr
-Paweł

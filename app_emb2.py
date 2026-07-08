@@ -44,8 +44,10 @@ def build_osnet():
 
 def build_efficientnet():
     import torchvision.models as models
-    efficientnet = models.efficientnet_b0(pretrained=True)
-    model = torch.nn.Sequential(*list(efficientnet.children())[:-1]).to(device).eval()
+    from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
+
+    model = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
+    # model = torch.nn.Sequential(*list(efficientnet.children())[:-1]).to(device).eval()
     return model
 
 osnet_model = build_osnet()
