@@ -9,7 +9,7 @@ models:
   yolo:
     path: "models/yolov8n.pt"
     engine_path: "models/yolov8n.engine"  # TensorRT
-    confidence_threshold: 0.25
+    confidence_threshold: 0.5
     image_size: 640
 
   feature_extractor:
@@ -19,7 +19,7 @@ models:
     image_size: 224
 
 camera:
-  device_id: 0
+  device_id: 2 #2 to w labie kamera podstawowa
   width: 640
   height: 480
   backend: "V4L2"  # V4L2, GSTREAMER
@@ -27,8 +27,8 @@ camera:
 patterns:
   database_path: "patterns_database"
   matching_threshold:
-    person: 0.75
-    default: 0.85
+    person: 0.78
+    default: 0.80
 
 clustering:
   distance_threshold: 0.1
