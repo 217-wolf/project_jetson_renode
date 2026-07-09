@@ -1,0 +1,1 @@
+"""System rozpoznawania obiektów - moduły."""
