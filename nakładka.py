@@ -6,6 +6,29 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+#na przyszłość trzymać się 1 języka w pliku
+#to do: mieszany ang / pl -> ujednolicić
+
+punkty_na_ciele = {
+    0: "nos",
+    1: "lewe_oko",
+    2: "prawe_oko",
+    3: "lewe_ucho",
+    4: "prawe_ucho",
+    5: "lewy_bark",
+    6: "prawy_bark",
+    7: "lewy_lokiec",
+    8: "prawy_lokiec",
+    9: "lewy_nadgarstek",
+    10: "prawy_nadgarstek",
+    11: "lewe_biodro",
+    12: "prawe_biodro",
+    13: "lewe_kolano",
+    14: "prawe_kolano",
+    15: "lewa_kostka",
+    16: "prawa_kostka"
+}
+
 class EmbeddingNet(nn.Module):
     def __init__(self):
         super().__init__()
