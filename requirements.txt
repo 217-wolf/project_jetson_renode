@@ -10,7 +10,7 @@ scipy>=1.10.0
 scikit-learn>=1.2.0
 
 # GUI
-tkinter  # wbudowany w Python
+#tkinter wbudowany w Python
 
 # Developerskie
 pyyaml>=6.0
