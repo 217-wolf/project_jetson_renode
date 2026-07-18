@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 #python==3.8.10
 
+=======
+# python==3.8.10
+>>>>>>> 67bb35f (próba utworzenia automatycznego działania)
 # Core
 torch>=2.0.0
 torchvision>=0.15.0
@@ -10,7 +14,11 @@ scipy>=1.10.0
 scikit-learn>=1.2.0
 
 # GUI
+<<<<<<< HEAD
 #tkinter wbudowany w Python
+=======
+# tkinter  # wbudowany w Python
+>>>>>>> 67bb35f (próba utworzenia automatycznego działania)
 
 # Developerskie
 pyyaml>=6.0

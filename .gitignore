@@ -1,3 +1,5 @@
 Obsidian\ Vault/.obsidian/
-
+.jetson
 .vscode
+sourcer/__pycache__
+__pycache__
