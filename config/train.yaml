@@ -1,0 +1,28 @@
+seed: 42
+
+epochs: 60
+early_stopping_patience: 12
+
+learning_rate: 0.001
+weight_decay: 0.0001
+max_gradient_norm: 5.0
+
+identities_per_batch: 8
+samples_per_identity: 4
+minimum_samples_per_identity: 2
+batches_per_epoch: null
+
+validation_batch_size: 64
+num_workers: 0
+
+embedding_dim: 128
+frame_feature_dim: 128
+gru_hidden_dim: 128
+gru_layers: 1
+bidirectional: true
+dropout: 0.20
+
+triplet_margin: 0.25
+triplet_weight: 1.0
+classification_weight: 0.5
+label_smoothing: 0.1
