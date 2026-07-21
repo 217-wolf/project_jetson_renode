@@ -15,10 +15,10 @@ import numpy as np
 from scipy.spatial.distance import cosine
 import threading
 
-from sourcer.camera import CameraManager
-from sourcer.detector import ObjectDetector
-from sourcer.extractor import FeatureExtractor
-from sourcer.visualizer import Visualizer
+from camera import CameraManager
+from detector import ObjectDetector
+from extractor import FeatureExtractor
+from visualizer import Visualizer
 from embedding_logger import EmbeddingLogger
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

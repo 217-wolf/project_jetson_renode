@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """Prosty GUI do uruchamiania i monitorowania procesu zbierania embeddingów.
 
 Interfejs ma trzy karty:
