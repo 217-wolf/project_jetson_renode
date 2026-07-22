@@ -15,8 +15,7 @@ class Gallery:
             self.known_emb[id].append(new_emb)
             return id #zwracamy id:str bo bedziemy to wyswietlac na ekranie, dziennik aktualizuje sie i tak
 
-        emb_list = np.array(list(self.known_emb.values()))
-        emb_matrix_pre = np.array(list((np.mean(i, axis=0) for i in emb_list))) #jezeli maxlen > 1
+        emb_matrix_pre = np.array([np.mean(list(dq), axis=0) for dq in self.known_emb.values()])
         emb_matrix = np.array(list(row / (scale := np.linalg.norm(row) + 1e-6) for row in emb_matrix_pre)) #usrednienie wyzej powoduje, ze wektory nie są juz znormalizowane, naprawiamy
 
         similarites = emb_matrix @ new_emb

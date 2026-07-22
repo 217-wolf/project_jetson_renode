@@ -121,6 +121,22 @@ def test_7_batch_emb():
                        atol=1e-3), f"Kierunek sie nie zgadza: {emb} vs {oczekiwany_kierunek_znormalizowany}"
     print("TEST PRZESZEDL - transform_batch_emb z IdentityModel dziala poprawnie")
 
+def test_8_rozna_liczba_wektorow_na_osobe():
+    """
+    wczesniej deque crashowalo przez rozna ilosc embedingow przy tworzeniu matrix w gallery.match
+    """
+    gallery = Gallery(max_vecs=5)
+    gallery.match(np.array([1.0, 0.0]), margin=0.7)
+    gallery.match(np.array([0.95, 0.05]), margin=0.7)
+    gallery.match(np.array([0.9, 0.1]), margin=0.7)  # osoba1 ma teraz 3 wektory
+
+    label = gallery.match(np.array([0.0, 1.0]), margin=0.7)  # osoba2 ma 1 wektor
+
+    assert len(gallery.known_emb["osoba1"]) == 3
+    assert len(gallery.known_emb["osoba2"]) == 1
+    assert label == "osoba2", f"Oczekiwano 'osoba2', dostano {label}"
+    print("TEST 8 PRZESZEDŁ - rozna liczba wektorow na osobe nie powoduje crasha")
+
 
 if __name__ == "__main__":
     test_1_pusta_galeria_pierwsza_osoba()
@@ -130,5 +146,6 @@ if __name__ == "__main__":
     test_5_przepelnienie_deque()
     test_6_renormalizacja_po_usrednieniu()
     test_7_batch_emb()
+    test_8_rozna_liczba_wektorow_na_osobe()
     print()
     print("WSZYSTKIE TESTY PRZESZŁY")
