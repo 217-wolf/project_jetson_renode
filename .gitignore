@@ -1,0 +1,30 @@
+# Środowisko wirtualne
+.venv/
+venv/
+ENV/
+
+# pliki modeli
+yolo11n-pose.pt
+*.pt
+*.onnx
+!embedding_net_best.pt
+
+# dane treningowe
+gait_data/
+data.zip
+
+# tymczasowe
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+test.py
+test2.py
+
+# konfiguracja
+.idea/
+.vscode/
+
+#archiwum
+archiwum/
