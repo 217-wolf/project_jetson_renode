@@ -10,7 +10,7 @@ class EmbeddingNet(nn.Module):
     """
     def __init__(self):
         super().__init__()
-        self.layers = nn.Sequential(
+        self.net = nn.Sequential(
             nn.Linear(34, 128),
             nn.BatchNorm1d(128),
             nn.ReLU(),
@@ -23,7 +23,7 @@ class EmbeddingNet(nn.Module):
         )
 
     def forward(self, X):
-        embedding = self.layers(X)
+        embedding = self.net(X)
         return F.normalize(embedding, p = 2, dim = 1) #dim = 1 oznacza normalizacje dla kazdego wiersza osobno
 
 class TripletLoss(nn.Module):
