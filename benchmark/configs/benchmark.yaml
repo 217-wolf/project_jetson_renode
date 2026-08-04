@@ -6,9 +6,9 @@ models:
   - name: YOLO26n
     path: modele/yolo26n.pt
 
-
 dataset:
   path: benchmark/dataset/images
+  labels: benchmark/dataset/labels
 
 
 settings:

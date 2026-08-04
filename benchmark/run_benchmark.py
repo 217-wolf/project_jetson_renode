@@ -22,6 +22,7 @@ def main():
     dataset = config["dataset"]["path"]
     results = []
     settings = config["settings"]
+    labels_dir = config["dataset"].get("labels")
 
     for model in models:
 
@@ -32,7 +33,8 @@ def main():
         runner = YOLOBenchmarkRunner(
             model_path,
             confidence=settings["confidence"],
-            image_size=settings["image_size"]
+            image_size=settings["image_size"],
+            labels_dir=labels_dir
         )
 
         result = runner.run(dataset)
