@@ -1,0 +1,16 @@
+models:
+
+  - name: YOLOv8n
+    path: models/yolov8n.pt
+
+  - name: YOLO26n
+    path: modele/yolo26n.pt
+
+
+dataset:
+  path: benchmark/dataset/images
+
+
+settings:
+  confidence: 0.5
+  image_size: 640
