@@ -3,18 +3,37 @@ from pathlib import Path
 from benchmark.metrics.detection_metrics import (
     DetectionMetricsCalculator, load_yolo_labels, yolo_to_xyxy
 )
+from benchmark.metrics.class_mapping import is_person_gt, is_person_pred
+
 
 from ultralytics import YOLO
 import cv2
 
+#indeksy z .yaml VisDrone
+VISDRONE_NAMES = {
+    0: "pedestrian",
+    1: "people",
+    2: "bicycle",
+    3: "car",
+    4: "van",
+    5: "truck",
+    6: "tricycle",
+    7: "awning-tricycle",
+    8: "bus",
+    9: "motor"
+}
+  
+
 class YOLOBenchmarkRunner:
 
-    def __init__(self, model_path, confidence=0.5, image_size=640, labels_dir=None):
+    def __init__(self, model_path, confidence=0.5, image_size=640, labels_dir=None, iou_threshold=0.5):
         self.model_path = model_path
         self.model = YOLO(model_path)
+        self.model_names = self.model.names
         self.confidence = confidence
         self.image_size = image_size
         self.labels_dir = Path(labels_dir) if labels_dir else None
+        self.iou_threshold = iou_threshold
     
 
 
@@ -45,7 +64,7 @@ class YOLOBenchmarkRunner:
         latencies = []
 
         calculator = (
-            DetectionMetricsCalculator(iou_threshold=0.5)
+            DetectionMetricsCalculator(iou_threshold=self.iou_threshold) #wczesniej bylo 0.5
             if self.labels_dir and self.labels_dir.is_dir()
             else None
         )
@@ -82,18 +101,33 @@ class YOLOBenchmarkRunner:
                 if calculator is not None:
                     img_h, img_w = image.shape[:2]
                     label_path = self.labels_dir / (image_path.stem + ".txt")
-                    gt_boxes = [yolo_to_xyxy(b, img_w, img_h) for b in load_yolo_labels(label_path)]
-                    pred_boxes = [tuple(b.xyxy[0].tolist()) for b in boxes]
-                    pred_confs = [float(b.conf[0]) for b in boxes]
-                    calculator.update(pred_boxes, pred_confs, gt_boxes)
+                    gt_labels = load_yolo_labels(label_path)
+                    # przy budowaniu gt_classes i pred_classes w pętli:
+                    gt_boxes_person = []
+                    for label in gt_labels:
+                        if is_person_gt(label["class"], VISDRONE_NAMES):
+                            gt_boxes_person.append(yolo_to_xyxy(label, img_w, img_h))
 
+                    pred_boxes_person = []
+                    pred_confs_person = []
+                    for box in boxes:
+                        cls_id = int(box.cls[0])
+                        if is_person_pred(cls_id, self.model_names):
+                            pred_boxes_person.append(tuple(box.xyxy[0].tolist()))
+                            pred_confs_person.append(float(box.conf[0]))
+
+                    # wszystkie klasy = 0 (jedna kategoria "person") dla obu list
+                    calculator.update(
+                        pred_boxes_person, pred_confs_person, [0]*len(pred_boxes_person),
+                        gt_boxes_person, [0]*len(gt_boxes_person),
+                    )
 
         fps = len(images) / total_time if total_time else 0
 
         avg_latency = (
             sum(latencies)/len(latencies)
             if latencies else 0
-)
+        )
         #avg_latency_ms = avg_latency * 1000
 
         avg_detections = total_detections / len(images)
