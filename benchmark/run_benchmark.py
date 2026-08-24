@@ -2,7 +2,7 @@ from pathlib import Path
 import csv
 import yaml
 
-from runners.yolo_runner import YOLOBenchmarkRunner
+from benchmark.runners.yolo_runner import YOLOBenchmarkRunner
 
 REPORT = "benchmark/reports/results.csv"
 

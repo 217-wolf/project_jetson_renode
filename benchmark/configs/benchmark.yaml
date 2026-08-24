@@ -7,8 +7,9 @@ models:
     path: modele/yolo26n.pt
 
 dataset:
-  path: benchmark/dataset/images
-  labels: benchmark/dataset/labels
+  name: visdrone
+  path: ../datasets/VisDrone/images/val
+  labels: ../datasets/VisDrone/labels/val
 
 
 settings:

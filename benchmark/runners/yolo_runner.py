@@ -1,6 +1,6 @@
 import time
 from pathlib import Path
-from metrics.detection_metrics import (
+from benchmark.metrics.detection_metrics import (
     DetectionMetricsCalculator, load_yolo_labels, yolo_to_xyxy
 )
 
@@ -44,7 +44,11 @@ class YOLOBenchmarkRunner:
         confidences = []
         latencies = []
 
-        calculator = DetectionMetricsCalculator(iou_threshold=0.5) if self.labels_dir else None
+        calculator = (
+            DetectionMetricsCalculator(iou_threshold=0.5)
+            if self.labels_dir and self.labels_dir.is_dir()
+            else None
+        )
 
         for image_path in images:
 
@@ -53,7 +57,7 @@ class YOLOBenchmarkRunner:
             if image is None:
                 continue
 
-            start = time.time()
+            start = time.perf_counter()
 
             results = self.model(
                 image,
@@ -62,7 +66,7 @@ class YOLOBenchmarkRunner:
                 verbose=False
             )
 
-            end = time.time()
+            end = time.perf_counter()
 
             latency = end - start
             latencies.append(latency)
