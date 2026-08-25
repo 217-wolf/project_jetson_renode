@@ -18,3 +18,16 @@ env/
 # OS files
 .DS_Store
 
+# Benchmark
+benchmark/dataset/images/
+benchmark/reports/*.csv
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Mac
+.DS_Store
+
+# Ultralytics artifacts
+runs/

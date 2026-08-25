@@ -1,0 +1,30 @@
+experiments:
+
+  - name: yolov8n_640
+    model: models/yolov8n.pt
+    imgsz: 640
+
+  - name: yolov8n_1280
+    model: models/yolov8n.pt
+    imgsz: 1280
+
+  - name: yolo26n_640
+    model: modele/yolo26n.pt
+    imgsz: 640
+
+  - name: yolo26n_1280
+    model: modele/yolo26n.pt
+    imgsz: 1280
+
+
+dataset:
+
+  name: visdrone
+  path: ../datasets/VisDrone/images/val
+  labels: ../datasets/VisDrone/labels/val
+
+
+settings:
+
+  confidence: 0.5
+  iou_threshold: 0.5
