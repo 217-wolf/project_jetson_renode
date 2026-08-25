@@ -1,3 +1,33 @@
 Obsidian\ Vault/.obsidian/
 
 .vscode
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+
+# Benchmark
+benchmark/dataset/images/
+benchmark/reports/*.csv
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Mac
+.DS_Store
+
+# Ultralytics artifacts
+runs/
