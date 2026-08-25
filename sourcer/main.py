@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
+
 """
 Główny punkt wejścia systemu.
 Użycie:
-    python main.py [--mode MODE] [--image PATH]
+    python main.py [--mode MODE] [--image PATH] [--video PATH]
 Tryby:
     gui        – uruchom interfejs graficzny (domyślnie)
     analyze    – analiza pojedynczego obrazu z ID instancji
-    camera     – test z kamery na żywo
+    camera     – test z kamery na żywo lub z pliku wideo (jeśli podano --video)
     add-all    – dodaj wszystkie obiekty z obrazu jako wzorce
 """
 import argparse
@@ -58,22 +58,38 @@ def analyze_image_mode(image_path: str):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-def camera_test_mode():
-    """Test rozpoznawania na żywo z kamery."""
+def camera_test_mode(source=None):
+    """
+    Test rozpoznawania na żywo z kamery lub z pliku wideo.
+    :param source: ścieżka do pliku wideo lub numer kamery (np. "0") – jeśli None, używa domyślnej kamery.
+    """
     detector = ObjectDetector()
     extractor = FeatureExtractor()
     database = PatternsDatabase()
     matcher = ObjectMatcher(database)
     visualizer = Visualizer()
-    cam = CameraManager()
 
-    if not cam.open():
-        logger.error("Nie można otworzyć kamery")
-        return
+    # Wybór źródła
+    if source is not None:
+        cap = cv2.VideoCapture(source)
+        if not cap.isOpened():
+            logger.error(f"Nie można otworzyć źródła: {source}")
+            return
+        read_func = cap.read
+        close_func = cap.release
+        logger.info(f"Otworzono plik wideo: {source}")
+    else:
+        cam = CameraManager()
+        if not cam.open():
+            logger.error("Nie można otworzyć kamery")
+            return
+        read_func = cam.read_frame
+        close_func = cam.close
+        logger.info("Kamera uruchomiona.")
 
-    logger.info("Kamera uruchomiona. Naciśnij 'q', aby zakończyć.")
+    logger.info("Naciśnij 'q', aby zakończyć.")
     while True:
-        ret, frame = cam.read_frame()
+        ret, frame = read_func()
         if not ret:
             break
 
@@ -100,7 +116,7 @@ def camera_test_mode():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    cam.close()
+    close_func()
     cv2.destroyAllWindows()
 
 def add_all_patterns_mode(image_path: str):
@@ -132,6 +148,7 @@ def main():
     parser.add_argument('--mode', choices=['gui','analyze','camera','add-all'],
                         default='gui', help='Tryb działania')
     parser.add_argument('--image', type=str, help='Ścieżka do obrazu (dla analyze/add-all)')
+    parser.add_argument('--video', type=str, help='Ścieżka do pliku wideo (dla trybu camera) – jeśli pominięto, używana jest kamera')
     args = parser.parse_args()
 
     if args.mode == 'gui':
@@ -144,7 +161,7 @@ def main():
             return
         analyze_image_mode(args.image)
     elif args.mode == 'camera':
-        camera_test_mode()
+        camera_test_mode(args.video)   # przekazanie ścieżki wideo (może być None)
     elif args.mode == 'add-all':
         if not args.image:
             logger.error("Podaj --image dla trybu add-all")

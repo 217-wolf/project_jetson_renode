@@ -7,9 +7,9 @@ system:
 
 models:
   yolo:
-    path: "models/yolov8n.pt"
-    engine_path: "models/yolov8n.engine"  # TensorRT
-    confidence_threshold: 0.5
+    path: "models/yolo26n.pt"
+    engine_path: "models/yolo26n.engine"  # TensorRT
+    confidence_threshold: 0.2
     image_size: 640
 
   feature_extractor:
@@ -27,8 +27,8 @@ camera:
 patterns:
   database_path: "patterns_database"
   matching_threshold:
-    person: 0.75
-    default: 0.80
+    person: 0.67
+    default: 0.50
 
 clustering:
   distance_threshold: 0.1

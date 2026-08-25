@@ -11,7 +11,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 class ObjectDetector:
-    """Detektor obiektów oparty na YOLOv8."""
+    """Detektor obiektów oparty na YOLOv26."""
     
     def __init__(self, config_path: str = "config.yaml"):
         with open(config_path) as f:
