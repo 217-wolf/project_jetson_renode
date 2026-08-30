@@ -1,5 +1,14 @@
 Obsidian\ Vault/.obsidian/
-.jetson
+
 .vscode
 sourcer/__pycache__
 __pycache__
+
+test_wideo_reid.mp4
+patterns_database/
+
+.jetson
+.venv/
+venv/
+.env
+.env.*
