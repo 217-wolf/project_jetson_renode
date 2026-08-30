@@ -12,14 +12,14 @@ import sys, os
 import threading
 from collect_embeddings import EmbeddingCollector
 from pathlib import Path
-from embedding_logger import EmbeddingLogger
+from reid_tracker import EmbeddingStore
 
 
 class CameraGUI:
     def __init__(self, master):
         self.master = master
         master.title('Camera Embedding Collector')
-        self.logger = EmbeddingLogger()
+        self.store = EmbeddingStore(Path('patterns_database'))
 
         self.collector = None
         self._collector_thread = None
@@ -82,8 +82,7 @@ class CameraGUI:
         self.start_process()
 
     def open_folder(self):
-        folder = Path('collected_embeddings').resolve()
-        folder.mkdir(parents=True, exist_ok=True)
+        folder = self.store.reid_root.resolve()
         try:
             if sys.platform == 'win32':
                 os.startfile(str(folder))
@@ -97,15 +96,19 @@ class CameraGUI:
         self.txt_log.insert('end', text)
         self.txt_log.see('end')
 
-    def _refresh_from_csv(self):
-        recent = self.logger.get_recent(200)
+    def _refresh_from_storage(self):
+        summary = self.store.get_summary()
         self.txt_log.delete('1.0', 'end')
-        for r in recent:
-            line = f"{r.get('timestamp','')}	{r.get('class','')}	{r.get('instance_id','')}	{r.get('filepath','')}\n"
-            self.txt_log.insert('end', line)
+        for class_name, counts in sorted(summary.items()):
+            self.txt_log.insert(
+                'end',
+                f"{class_name}: {counts['identities']} tożsamości, {counts['gallery_samples']} widoków galerii\n",
+            )
 
-        summary = self.logger.get_summary()
-        text = '\n'.join([f"{k}: {v}" for k, v in sorted(summary.items())])
+        text = '\n'.join(
+            f"{class_name}: {counts['identities']} tożsamości, {counts['gallery_samples']} widoków"
+            for class_name, counts in sorted(summary.items())
+        )
         self.lbl_summary.config(text=text)
 
         # Check collector status
@@ -115,7 +118,7 @@ class CameraGUI:
 
     def _schedule_update(self):
         try:
-            self._refresh_from_csv()
+            self._refresh_from_storage()
         finally:
             self.master.after(self.update_interval, self._schedule_update)
 
