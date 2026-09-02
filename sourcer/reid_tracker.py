@@ -30,7 +30,7 @@ class EmbeddingStore:
 
     def __init__(self, database_path: Path | str = "patterns_database"):
         self.database_path = Path(database_path)
-        self.reid_root = self.database_path / "reid"
+        self.reid_root = self.database_path
         self.reid_root.mkdir(parents=True, exist_ok=True)
 
     def _identity_dir(self, class_name: str, identity_id: int) -> Path:

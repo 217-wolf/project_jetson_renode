@@ -33,7 +33,7 @@ class PatternsDatabase:
             config = yaml.safe_load(file)
 
         self.db_path = Path(config["patterns"]["database_path"])
-        self.known_root = self.db_path / "known"
+        self.known_root = self.db_path
         self.known_root.mkdir(parents=True, exist_ok=True)
         self.patterns: Dict[str, List[Dict]] = {}
         self._load()
@@ -42,7 +42,7 @@ class PatternsDatabase:
         return self.known_root / _safe_component(class_name) / _safe_component(name)
 
     def _load(self) -> None:
-        """Wczytaj wszystkie kompletne wzorce z katalogu ``known``."""
+        """Wczytaj wszystkie kompletne wzorce z katalogu."""
         for class_dir in self.known_root.iterdir():
             if not class_dir.is_dir():
                 continue

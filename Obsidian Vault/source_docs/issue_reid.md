@@ -1,23 +1,33 @@
 
-## Ważna diagnoza `UNKNOWN` dla osób
+## Zapis osadzeń z pamięci RAM do `patterns_database`
 
-Aktualny problem znajduje się przede wszystkim w obsłudze plików bazy wzorców:
+Należy zaprojektować i wdrożyć sposób trwałego zapisu osadzeń (embeddingów) przechowywanych tymczasowo w pamięci RAM do folderu `patterns_database`. Zapis powinien obejmować przede wszystkim embeddingi osób. Dla klasy reprezentującej osoby należy utworzyć osobny folder w `patterns_database`, co pozwoli zachować uporządkowaną strukturę projektu i ułatwi ewentualną zmianę sposobu przechowywania danych w przyszłości.
 
-- `database.py` podczas ładowania szuka pliku `name.npy`.
-- `database.py` podczas zapisu tworzy plik `name_class.npy`.
-- Obecne pliki mają format `person_002_person.npy`, `bus_001_bus.npy` itd.
-- W rezultacie metadane są odczytywane, ale embeddingi nie są znajdowane i lista wzorców pozostaje pusta.
-- `matcher.py` dostaje pustą listę dla klasy `person` i zwraca `(None, 0.0)`.
-- `gui.py` oraz `main.py` zamieniają brak nazwy na `UNKNOWN`.
+Do rozstrzygnięcia pozostaje, jaki wariant danych powinien być utrwalany dla jednej osoby/klasy:
 
-Test w środowisku projektu potwierdził ten stan: baza zawiera klasy `bus`, `person` i `horse`, ale ładuje `0` wzorców.
+- pojedyncze osadzenie reprezentatywne (najlepsze)
+- prototyp utworzony z wielu obserwacji (uśrednione osadzenie)
+- galeria osadzeń obejmująca różne kąty i warunki obserwacji
+- kombinacja 3 opcji powyżej
 
-## Dodatkowe miejsca do sprawdzenia przy naprawie ReID
+Jeżeli dla jednej osoby/klasy będzie zapisywany więcej niż jeden plik osadzenia, pliki nie powinny znajdować się bezpośrednio w głównym folderze `patterns_database/`. Dla każdej instancji należy utworzyć osobny podfolder zawierający wyłącznie osadzenia tej instancji oraz powiązane metadane. Przykładowo: folder `person/` dla klasy a w nim podfoldery `person_1/` , `person_2/` itd.
 
-- Ujednolicić jeden format nazwy pliku w całym `database.py` i sprawdzić istniejące pliki po zmianie.
-- Upewnić się, że embedding wzorca i embedding z kamery pochodzą z tego samego ekstraktora. Obecne pliki osób mają rozmiar `(512,)`, a pliki innych obiektów `(1280,)`, co wskazuje na użycie różnych modeli.
-- Sprawdzić preprocessing OSNet, w szczególności normalizację obrazu, ponieważ obecny przepływ dla OSNet różni się od typowego preprocessing'u modelu ReID.
-- Rozdzielić dwa pojęcia: `instance_id` służy do śledzenia obiektu w czasie, a nazwa wzorca (`person_002` itd.) służy do rozpoznania konkretnej osoby.
-- W trybach live w `gui.py` i `main.py` obecnie wykonywane jest dopasowanie nazwy, ale nie ma trackera nadającego stabilne ID między klatkami. Do pełnego ReID należy połączyć detekcję, embedding, dopasowanie do bazy i tracker.
+W wariancie z wieloma plikami osadzeń wymagany jest plik JSON z metadanymi, zawierający:
 
-Plik ten opisuje stan diagnostyczny. Nie zmienia działania programu.
+- nazwę klasy.
+- identyfikator instancji
+- wskazanie najlepszego osadzenia / prototyp
+- poziom pewności (confidence level)
+
+\
+\
+Przykładowa organizacja:
+```
+patterns_database/
+└── <instance_id>/
+    ├── best_instance_id_embedding.npy
+    ├── instance_id_embedding_001.npy
+    ├── instance_id_embedding_002.npy
+    ├── prototype_instance_id.npy
+    └── instance_id_metadata.json
+```
