@@ -33,7 +33,7 @@ class PatternsDatabase:
             config = yaml.safe_load(file)
 
         self.db_path = Path(config["patterns"]["database_path"])
-        self.known_root = self.db_path
+        self.known_root = self.db_path / "known"
         self.known_root.mkdir(parents=True, exist_ok=True)
         self.patterns: Dict[str, List[Dict]] = {}
         self._load()

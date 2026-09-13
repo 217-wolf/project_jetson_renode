@@ -1,4 +1,4 @@
-#!/bin/bash
+# !/bin/bash
 # Skrypt uruchomieniowy dla Jetson Orin Nano
 
 # Aktywacja środowiska (jeśli używasz venv/conda)

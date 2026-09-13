@@ -8,6 +8,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import shutil
 
 import numpy as np
 
@@ -90,6 +91,22 @@ class EmbeddingStore:
             }
         return summary
 
+    def clear(self) -> None:
+        """Usuń wyłącznie zapisane tożsamości ReID (identity_*), pozostaw wzorce 'known'."""
+        if not self.reid_root.exists():
+            return
+
+        identity_pattern = re.compile(r"^identity_\d{6}$")
+        for class_dir in self.reid_root.iterdir():
+            if not class_dir.is_dir():
+                continue
+            for item in list(class_dir.iterdir()):
+                if item.is_dir() and identity_pattern.match(item.name):
+                    shutil.rmtree(item, ignore_errors=True)
+            if not any(class_dir.iterdir()):
+                class_dir.rmdir()
+
+        logger.info("Usunięto zapisane tożsamości ReID z dysku")
 
 class PersistentReIDTracker:
     """Tracker ReID z pamięcią wieloperspektywiczną i opcjonalnym zapisem stanu."""
