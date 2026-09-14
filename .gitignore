@@ -1,6 +1,8 @@
 Obsidian\ Vault/.obsidian/
 
 .vscode
+.idea
+
 sourcer/__pycache__
 __pycache__
 
