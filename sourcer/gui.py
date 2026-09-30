@@ -19,7 +19,7 @@ from matcher import ObjectMatcher
 from visualizer import Visualizer
 from camera import CameraManager
 from analyzer import ImageAnalyzer
-from reid_tracker import PersistentReIDTracker
+from launcher import launch_recognition
 
 #import zewnętrzny
 import cv2
@@ -195,6 +195,16 @@ class MainApplication:
         ttk.Button(sf, text="ROZPOCZNIJ TEST", command=self._start_test)\
             .pack(side=tk.LEFT, padx=20)
 
+        idf = ttk.LabelFrame(f, text="Identyfikacja (kamera / wideo)")
+        idf.pack(fill=tk.X, padx=10, pady=5)
+        self.identify_mode = tk.StringVar(value="auto")
+        ttk.Radiobutton(idf, text="Auto (baza jeśli są wzorce)", variable=self.identify_mode, value="auto")\
+            .pack(side=tk.LEFT, padx=10)
+        ttk.Radiobutton(idf, text="Osadzenia z bazy", variable=self.identify_mode, value="database")\
+            .pack(side=tk.LEFT, padx=10)
+        ttk.Radiobutton(idf, text="ReID", variable=self.identify_mode, value="reid")\
+            .pack(side=tk.LEFT, padx=10)
+
         rf = ttk.LabelFrame(f, text="Wyniki")
         rf.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         self.results_text = tk.Text(rf, height=12, width=80)
@@ -250,56 +260,17 @@ class MainApplication:
         cv2.destroyWindow("Wynik testu")
 
     def _run_live_test(self, source=None):
-        """Ujednolicony test live – source=None oznacza kamerę, source=ścieżka oznacza plik wideo."""
-        if source is not None:
-            cap = cv2.VideoCapture(source)
-            if not cap.isOpened():
-                messagebox.showerror("Błąd", f"Nie można otworzyć pliku wideo:\n{source}")
-                return
-            read_func = cap.read
-            close_func = cap.release
-            window_title = f"ReID: {source}"
-            logger.info(f"Otworzono plik wideo: {source}")
-        else:
-            if not self.camera.open():
-                messagebox.showerror("Błąd", "Nie można otworzyć kamery")
-                return
-            read_func = self.camera.read_frame
-            close_func = self.camera.close
-            window_title = "Test z kamery"
-            logger.info("Kamera live - naciśnij 'Q' / 'Esc' aby zakończyć")
-
-        reid_tracker = PersistentReIDTracker()
-        while True:
-            ret, frame = read_func()
-            if not ret:
-                break
-            detections = self.detector.detect(frame)
-            trackable = []
-            for det in detections:
-                x1, y1, x2, y2 = det['bbox']
-                crop = frame[y1:y2, x1:x2]
-                emb = self.extractor.extract(crop, det['class'])
-                if emb is not None:
-                    det['embedding'] = emb
-                    trackable.append(det)
-                    match, sim = self.matcher.match(emb, det['class'])
-                    det['match'] = match or 'NIEZNANY'
-                    det['similarity'] = sim
-                else:
-                    det['match'] = 'NIEZNANY'
-                    det['similarity'] = 0.0
-
-            reid_tracker.update(trackable)
-            annotated = self.visualizer.draw_detections(frame, detections)
-
-            cv2.imshow(window_title, annotated)
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q') or key == 27:  # 'Q' lub ESC
-                break
-
-        close_func()
-        cv2.destroyWindow(window_title)
+        """Test live — baza wzorców albo ReID, zgodnie z wyborem na zakładce."""
+        ok = launch_recognition(
+            identify=self.identify_mode.get(),
+            source=source,
+            record=False,
+            detector=self.detector,
+            extractor=self.extractor,
+            database=self.database,
+        )
+        if not ok:
+            messagebox.showerror("Błąd", "Nie można otworzyć kamery ani pliku wideo.")
 
     def _display_results(self, detections, out_path):
         self.results_text.insert(tk.END, f"Zapisano: {out_path}\n{'='*60}\n")

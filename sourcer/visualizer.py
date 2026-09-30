@@ -62,11 +62,14 @@ class Visualizer:
         for detection in detections:
             x1, y1, x2, y2 = detection['bbox']
             class_name = detection['class']
-            instance_id = detection.get('instance_id', 0)
+            instance_id = detection.get('instance_id')
             confidence = detection.get('confidence', 0.0)
-            
-            color = self._color_for_id(instance_id)
-            label = f"{class_name}_{instance_id} | {confidence:.2f}"
+            if instance_id is None:
+                color = (0, 0, 255)
+                label = f"NIEZNANY ({class_name}) | {confidence:.2f}"
+            else:
+                color = self._color_for_id(instance_id)
+                label = f"{class_name}_{instance_id} | {confidence:.2f}"
             
             cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
             (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)

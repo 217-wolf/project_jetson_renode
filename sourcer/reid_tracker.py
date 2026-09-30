@@ -71,6 +71,56 @@ class EmbeddingStore:
 
         return identity_dir
 
+    def load(self) -> Dict[int, Dict]:
+        """Wczytaj zapisane tożsamości ReID z dysku do pamięci trackera."""
+        identities: Dict[int, Dict] = {}
+        if not self.reid_root.exists():
+            return identities
+
+        identity_pattern = re.compile(r"^identity_(\d{6})$")
+        for class_dir in self.reid_root.iterdir():
+            if not class_dir.is_dir():
+                continue
+            for identity_dir in class_dir.iterdir():
+                match = identity_pattern.match(identity_dir.name)
+                if not identity_dir.is_dir() or not match:
+                    continue
+                prototype_file = identity_dir / "prototype.npy"
+                metadata_file = identity_dir / "metadata.json"
+                if not prototype_file.exists() or not metadata_file.exists():
+                    logger.warning("Pomijam niekompletną tożsamość ReID: %s", identity_dir)
+                    continue
+                try:
+                    with metadata_file.open(encoding="utf-8") as file:
+                        metadata = json.load(file)
+                    prototype = np.asarray(np.load(prototype_file), dtype=np.float32)
+                    gallery: List[np.ndarray] = []
+                    gallery_dir = identity_dir / "gallery"
+                    if gallery_dir.is_dir():
+                        for view_file in sorted(gallery_dir.glob("view_*.npy")):
+                            gallery.append(np.asarray(np.load(view_file), dtype=np.float32))
+                    identity_id = int(metadata.get("identity_id", match.group(1)))
+                    if identity_id in identities:
+                        logger.warning("Pomijam zduplikowane ID ReID #%s w %s", identity_id, identity_dir)
+                        continue
+                    identities[identity_id] = {
+                        "class": metadata.get("class", class_dir.name),
+                        "prototype": prototype,
+                        "gallery": gallery or [prototype.copy()],
+                        "confidence": float(metadata.get("confidence", 0.0)),
+                        "bbox": (0, 0, 0, 0),
+                        "active": False,
+                        "missing": 31,
+                        "samples": int(metadata.get("samples", 0)),
+                        "last_seen": metadata.get("last_seen", ""),
+                        "embedding_path": str(prototype_file),
+                    }
+                except (OSError, ValueError, KeyError, json.JSONDecodeError) as error:
+                    logger.warning("Nie można wczytać tożsamości ReID %s: %s", identity_dir, error)
+
+        logger.info("Wczytano %s tożsamości ReID z dysku", len(identities))
+        return identities
+
     def get_summary(self) -> Dict[str, Dict[str, int]]:
         """Zwróć liczbę tożsamości i widoków galerii dla każdej klasy."""
         summary: Dict[str, Dict[str, int]] = {}
@@ -80,7 +130,10 @@ class EmbeddingStore:
         for class_dir in self.reid_root.iterdir():
             if not class_dir.is_dir():
                 continue
-            identity_dirs = [item for item in class_dir.iterdir() if item.is_dir()]
+            identity_dirs = [
+                item for item in class_dir.iterdir()
+                if item.is_dir() and item.name.startswith("identity_")
+            ]
             gallery_samples = sum(
                 len(list((identity_dir / "gallery").glob("view_*.npy")))
                 for identity_dir in identity_dirs
@@ -136,6 +189,19 @@ class PersistentReIDTracker:
         self.next_id = 1
         self.frame_counter = 0
         logger.info("Zresetowano pamięć trackera ReID dla bieżącej sesji.")
+
+    def load_from_store(self) -> int:
+        """Przywróć tożsamości z EmbeddingStore. Zwraca liczbę wczytanych rekordów."""
+        if self.store is None:
+            return 0
+        loaded = self.store.load()
+        for identity in loaded.values():
+            identity["prototype"] = self._normalise(identity["prototype"])
+            identity["gallery"] = [self._normalise(item) for item in identity.get("gallery", [])]
+        self.identities.update(loaded)
+        if loaded:
+            self.next_id = max(self.next_id, max(loaded) + 1)
+        return len(loaded)
 
     @staticmethod
     def _normalise(embedding: np.ndarray) -> np.ndarray:

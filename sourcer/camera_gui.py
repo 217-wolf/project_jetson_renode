@@ -19,7 +19,7 @@ class CameraGUI:
     def __init__(self, master):
         self.master = master
         master.title('Camera Embedding Collector')
-        self.store = EmbeddingStore(Path('patterns_database'))
+        self.store = EmbeddingStore(Path('patterns_database') / 'reid')
 
         self.collector = None
         self._collector_thread = None

@@ -14,7 +14,7 @@ class ObjectMatcher:
 
     def __init__(self, database, config_path: str = "config.yaml"):
         self.database = database
-        with open(config_path) as file:
+        with open(config_path, encoding="utf-8") as file:
             config = yaml.safe_load(file)
         self.thresholds = config['patterns']['matching_threshold']
         self._warned_patterns = set()

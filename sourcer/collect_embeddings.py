@@ -29,7 +29,7 @@ class EmbeddingCollector:
         self.detector = ObjectDetector(config_path)
         self.extractor = FeatureExtractor(config_path)
         self.visualizer = Visualizer()
-        self.embedding_store = EmbeddingStore(Path(config["patterns"]["database_path"]))
+        self.embedding_store = EmbeddingStore(Path(config["patterns"]["database_path"]) / "reid")
         self.tracker = PersistentReIDTracker(store=self.embedding_store)
         self._stop_event = threading.Event()
         self._thread = None

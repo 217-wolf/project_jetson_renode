@@ -2,12 +2,16 @@
 """
 Główny punkt wejścia systemu.
 Użycie:
-    python main.py [--mode MODE] [--image PATH] [--video PATH]
+    python main.py [--mode MODE] [--image PATH] [--video PATH] [--identify MODE]
 Tryby:
     gui        - uruchom interfejs graficzny (domyślnie)
     analyze    - analiza pojedynczego obrazu z ID instancji
     camera     - test na żywo z kamery lub z pliku wideo (jeśli podano --video)
     add-all    - dodaje wszystkie obiekty z obrazu jako wzorce
+Identyfikacja (--identify):
+    auto       - wzorce z bazy, jeśli istnieją; w przeciwnym razie ReID
+    database   - dopasowanie do osadzeń w patterns_database/known
+    reid       - śledzenie tożsamości z patterns_database/reid
 """
 
 import argparse
@@ -15,8 +19,6 @@ import logging
 from pathlib import Path
 import sys
 from typing import Optional, Union
-from datetime import datetime
-
 import cv2
 
 # Dodaj katalog sourcer do ścieżki (umożliwia import modułów)
@@ -24,12 +26,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Import modułów
 from analyzer import ImageAnalyzer
-from camera import CameraManager
 from database import PatternsDatabase
 from detector import ObjectDetector
 from extractor import FeatureExtractor
-from matcher import ObjectMatcher
-from reid_tracker import EmbeddingStore,PersistentReIDTracker
+from launcher import launch_recognition
 from visualizer import Visualizer
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -66,114 +66,18 @@ def analyze_image_mode(image_path: str) -> None:
     cv2.destroyAllWindows()
 
 
-def camera_test_mode(source: Optional[Union[str, int]] = None, reset_tracker: bool = False) -> None:
-    """
-    Test rozpoznawania na żywo z kamery lub z pliku wideo.
-    Dodatkowo zapisuje osadzenia ReID do patterns_database oraz nagrywa
-    wideo z adnotacjami do recordings/.
-    """
-    detector = ObjectDetector()
-    extractor = FeatureExtractor()
-    database = PatternsDatabase()
-    matcher = ObjectMatcher(database)
-
-    # EmbeddingStore współdzieli root z PatternsDatabase (patterns_database)
-    store = EmbeddingStore(database_path=database.db_path / "reid")
-
-    reid_tracker = PersistentReIDTracker(store=store)
-    if reset_tracker:
-        reid_tracker.reset()
-        store.clear()  # kasuje tylko identity_*, wzorce "known" zostają nietknięte
-
-    visualizer = Visualizer()
-
-    # Wybór źródła (plik wideo lub kamera)
-    if source is not None:
-        cap = cv2.VideoCapture(source)
-        if not cap.isOpened():
-            logger.error(f"Nie można otworzyć źródła wideo: {source}")
-            return
-        read_func = cap.read
-        close_func = cap.release
-        source_fps = cap.get(cv2.CAP_PROP_FPS)
-        logger.info(f"Otworzono plik wideo: {source}")
-    else:
-        cam = CameraManager()
-        if not cam.open():
-            logger.error("Nie można otworzyć kamery")
-            return
-        read_func = cam.read_frame
-        close_func = cam.close
-        source_fps = cam.cap.get(cv2.CAP_PROP_FPS) if cam.cap is not None else 0
-        logger.info("Kamera uruchomiona.")
-
-    fps = source_fps if source_fps and source_fps > 1 else 20.0
-
-    recordings_dir = database.db_path.parent / "recordings"
-    recordings_dir.mkdir(parents=True, exist_ok=True)
-    output_path = recordings_dir / f"recording_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
-
-    writer = None  # tworzony przy pierwszej klatce, gdy znamy rozdzielczość
-
-    logger.info("Naciśnij 'Q' lub 'Esc', aby zakończyć.")
-    try:
-        while True:
-            ret, frame = read_func()
-            if not ret:
-                logger.info("Koniec strumienia wideo / brak klatki.")
-                break
-
-            # 1. Wykrywanie obiektów
-            detections = detector.detect(frame)
-
-            # 2. Ekstrakcja cech i dopasowanie do wzorców
-            trackable = []
-            for det in detections:
-                x1, y1, x2, y2 = det['bbox']
-                crop = frame[y1:y2, x1:x2]
-                emb = extractor.extract(crop, det['class'])
-                if emb is not None:
-                    det['embedding'] = emb
-                    trackable.append(det)
-                    match, sim = matcher.match(emb, det['class'])
-                    det['match'] = match or 'UNKNOWN'
-                    det['similarity'] = sim
-                else:
-                    det['match'] = 'UNKNOWN'
-                    det['similarity'] = 0.0
-
-            # 3. Aktualizacja trackera ReID — zapisuje osadzenia na dysk zgodnie z persist_every_frames
-            reid_tracker.update(trackable)
-
-            # 4. Wizualizacja wyników (obraz z boxami — to właśnie ten nagrywamy)
-            annotated = visualizer.draw_detections(frame, detections)
-
-            # 5. Inicjalizacja writer'a przy pierwszej klatce + zapis nagrania
-            if writer is None:
-                height, width = annotated.shape[:2]
-                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-                writer = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
-                if not writer.isOpened():
-                    logger.error(f"Nie można utworzyć pliku nagrania: {output_path}")
-                    writer = None
-                else:
-                    logger.info(f"Nagrywanie do: {output_path}")
-
-            if writer is not None:
-                writer.write(annotated)
-
-            cv2.imshow("Test z kamery / wideo", annotated)
-
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q') or key == 27:  # 'Q' lub 'Esc'
-                break
-    finally:
-        # Zapis końcowego stanu ReID — nawet klatek, które nie trafiły w interwał persist_every_frames
-        reid_tracker.flush()
-        if writer is not None:
-            writer.release()
-        close_func()
-        cv2.destroyAllWindows()
+def camera_test_mode(
+    source: Optional[Union[str, int]] = None,
+    reset_tracker: bool = False,
+    identify: str = "auto",
+) -> None:
+    """Rozpoznawanie na żywo z kamery lub pliku: baza wzorców albo ReID."""
+    launch_recognition(
+        identify=identify,
+        source=source,
+        reset_reid=reset_tracker,
+        record=True,
+    )
 
 
 def add_all_patterns_mode(image_path: str) -> None:
@@ -226,6 +130,12 @@ def main():
         action='store_true',
         help='Wyczyść dotychczas zebrane tożsamości i zacznij numerację ID od nowa (od #1)'
     )
+    parser.add_argument(
+        '--identify',
+        choices=['auto', 'database', 'reid'],
+        default='auto',
+        help='Sposób identyfikacji: baza wzorców, ReID albo auto (baza jeśli są wzorce)'
+    )
     args = parser.parse_args()
 
     # Jeśli podano plik wideo, a tryb to domyślny 'gui', automatycznie przełącz na odtwarzanie wideo
@@ -249,7 +159,7 @@ def main():
         analyze_image_mode(args.image)
 
     elif args.mode == 'camera':
-        camera_test_mode(args.video, reset_tracker=args.reset)
+        camera_test_mode(args.video, reset_tracker=args.reset, identify=args.identify)
 
     elif args.mode == 'add-all':
         if not args.image:

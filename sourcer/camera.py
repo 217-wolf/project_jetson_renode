@@ -1,4 +1,5 @@
 """Moduł obsługi kamery."""
+import sys
 import cv2
 import numpy as np
 
@@ -11,7 +12,7 @@ class CameraManager:
     """Zarządza połączeniem z kamerą."""
     
     def __init__(self, config_path: str = "config.yaml"):
-        with open(config_path) as file:
+        with open(config_path, encoding="utf-8") as file:
             config = yaml.safe_load(file)
         
         self.config = config['camera']
@@ -22,21 +23,27 @@ class CameraManager:
         backend = self.config.get('backend', 'V4L2')
         
         
+        device_id = self.config['device_id']
         if backend == 'GSTREAMER':
-            # Dla Jetson - użyj GStreamer pipeline
             pipeline = (
-                f"v4l2src device=/dev/video{self.config['device_id']} ! "
+                f"v4l2src device=/dev/video{device_id} ! "
                 "video/x-raw, width=640, height=480 ! "
                 "nvvidconv ! video/x-raw, format=BGRx ! "
                 "videoconvert ! video/x-raw, format=BGR ! appsink")
             self.cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
-        elif backend == 'V4L2':
-            self.cap = cv2.VideoCapture(self.config['device_id'], cv2.CAP_V4L2)
+        elif backend == 'V4L2' and sys.platform != 'win32':
+            self.cap = cv2.VideoCapture(device_id, cv2.CAP_V4L2)
+        elif sys.platform == 'win32':
+            if backend == 'V4L2':
+                logger.warning("Backend V4L2 jest dla Linux/Jetson — na Windows używam DirectShow")
+            self.cap = cv2.VideoCapture(device_id, cv2.CAP_DSHOW)
+            if self.cap is None or not self.cap.isOpened():
+                self.cap = cv2.VideoCapture(device_id)
         else:
-            self.cap = cv2.VideoCapture(self.config['device_id'])
-        
-        if not self.cap.isOpened():
-            logger.error(f"Nie można otworzyć kamery {self.config['device_id']}")
+            self.cap = cv2.VideoCapture(device_id)
+
+        if self.cap is None or not self.cap.isOpened():
+            logger.error(f"Nie można otworzyć kamery {device_id}")
             return False
         
         # Ustaw rozdzielczość

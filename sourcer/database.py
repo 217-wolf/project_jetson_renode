@@ -34,7 +34,9 @@ class PatternsDatabase:
 
         self.db_path = Path(config["patterns"]["database_path"])
         self.known_root = self.db_path / "known"
+        self.reid_path = self.db_path / "reid"
         self.known_root.mkdir(parents=True, exist_ok=True)
+        self.reid_path.mkdir(parents=True, exist_ok=True)
         self.patterns: Dict[str, List[Dict]] = {}
         self._load()
 
