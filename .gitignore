@@ -1,5 +1,7 @@
 Obsidian\ Vault/.obsidian/
+Model_Projektu
 
+.idea
 .vscode
 
 # Python
@@ -7,10 +9,18 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+test_wideo_reid.mp4
+patterns_database/
+recordings/
+
+
 # Virtual environments
+.jetson
 .venv/
 venv/
-env/
+.env
+.env.*
+
 
 # Jupyter
 .ipynb_checkpoints/
@@ -25,6 +35,8 @@ benchmark/reports/*.csv
 # Python cache
 __pycache__/
 *.pyc
+sourcer/__pycache__
+__pycache__
 
 # Mac
 .DS_Store

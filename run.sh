@@ -1,4 +1,4 @@
-#!/bin/bash
+# !/bin/bash
 # Skrypt uruchomieniowy dla Jetson Orin Nano
 
 # Aktywacja środowiska (jeśli używasz venv/conda)
@@ -11,4 +11,4 @@ python3 -c "import torch; print('CUDA:', torch.cuda.is_available())"
 cd "$(dirname "$0")"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
 
-python3 sourcer/main.py
+python3 sourcer/main.py 

@@ -19,7 +19,7 @@ models:
     image_size: 224
 
 camera:
-  device_id: 2 #2 to w labie kamera podstawowa
+  device_id: 2 #kamera podstawowa w laboratorium. (2)
   width: 640
   height: 480
   backend: "V4L2"  # V4L2, GSTREAMER
@@ -27,8 +27,8 @@ camera:
 patterns:
   database_path: "patterns_database"
   matching_threshold:
-    person: 0.75
-    default: 0.80
+    person: 0.90
+    default: 0.85
 
 clustering:
   distance_threshold: 0.1

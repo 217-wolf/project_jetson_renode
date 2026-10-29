@@ -1,4 +1,5 @@
-"""Moduł dopasowywania obiektów do wzorców."""
+"""Moduł dopasowywania obiektów do istniejących wzorców."""
+
 import numpy as np
 from scipy.spatial.distance import cosine
 
@@ -6,6 +7,7 @@ from typing import Optional, Tuple, Dict, List
 import logging, yaml
 
 logger = logging.getLogger(__name__) #informacja o module
+
 
 class ObjectMatcher:
     """Dopasowuje wykryte obiekty do bazy wzorców."""
@@ -15,14 +17,14 @@ class ObjectMatcher:
         with open(config_path) as file:
             config = yaml.safe_load(file)
         self.thresholds = config['patterns']['matching_threshold']
+        self._warned_patterns = set()
     
     def match(self, embedding: np.ndarray, class_name: str) -> Tuple[Optional[str], float]:
         """
-        Dopasowanie embeddingu do wzorca.
+        Dopasowanie osadzenia do wzorca.
         
         Args:
-            embedding: Wektor cech obiektu
-            class_name: Klasa obiektu
+            embedding, class_name
             
         Returns:
             (nazwa_dopasowania, podobieństwo)
@@ -38,8 +40,19 @@ class ObjectMatcher:
         best_match = None
         best_similarity = 0.0
         
+        emb_flat = embedding.flatten()
         for pattern in patterns:
-            similarity = 1 - cosine(embedding.flatten(), pattern['embedding'].flatten())
+            pat_emb = pattern['embedding'].flatten()
+            if emb_flat.shape != pat_emb.shape:
+                if pattern['name'] not in self._warned_patterns:
+                    logger.warning(
+                        f"Niezgodność wymiarów embeddingu: aktualny {emb_flat.shape} vs wzorzec {pat_emb.shape} "
+                        f"dla wzorca '{pattern['name']}' ({class_name}). Pomijanie dopasowania."
+                    )
+                    self._warned_patterns.add(pattern['name'])
+                continue
+
+            similarity = 1 - cosine(emb_flat, pat_emb)
             
             if similarity > best_similarity and similarity >= threshold:
                 best_similarity = similarity

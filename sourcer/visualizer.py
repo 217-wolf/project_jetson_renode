@@ -21,29 +21,28 @@ class Visualizer:
             confidence = det.get('confidence', 0.0)
             match_name = det.get('match', 'UNKNOWN')
             similarity = det.get('similarity', 0.0)
+            instance_id = det.get('instance_id', None)
             
-            # Wybierz kolor
             if match_name and match_name != 'UNKNOWN':
                 color = self._get_color(match_name)
-                status = "MATCH"
+                if instance_id is not None:
+                    text = f"{match_name} [ID:{instance_id}] ({class_name}) | {confidence:.3f} | podob:{similarity:.3f}"
+                else:
+                    text = f"{match_name} ({class_name}) | {confidence:.3f} | podob:{similarity:.3f}"
+            elif instance_id is not None:
+                color = self._color_for_id(instance_id)
+                text = f"[new] ID #{instance_id} ({class_name}) | {confidence:.3f}"
             else:
-                color = (0, 0, 255)  # Czerwony dla nieznanych
-                status = "UNKNOWN"
+                color = (0, 0, 255)  # Czerwony
+                text = f"NIEZNANY ({class_name}) | {confidence:.3f}"
             
             # Rysuj ramkę
             cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
             
-            # Przygotuj tekst
-            if status == "MATCH":
-                text = f"{match_name} ({class_name}) | {confidence:.2f} | sim:{similarity:.3f}"
-            else:
-                text = f"UNKNOWN ({class_name}) | {confidence:.2f}"
-            
             # Rysuj tło tekstu
             (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
             cv2.rectangle(annotated, (x1, y1 - th - 5), (x1 + tw, y1), color, -1)
-            cv2.putText(annotated, text, (x1, y1 - 5), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            cv2.putText(annotated, text, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
         
         return annotated
     
@@ -72,8 +71,7 @@ class Visualizer:
             cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
             (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
             cv2.rectangle(annotated, (x1, y1 - th - 5), (x1 + tw, y1), color, -1)
-            cv2.putText(annotated, label, (x1, y1 - 5), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            cv2.putText(annotated, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
         return annotated
     
     def _get_color(self, name: str) -> Tuple[int, int, int]:

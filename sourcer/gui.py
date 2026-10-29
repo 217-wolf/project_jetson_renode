@@ -19,6 +19,7 @@ from matcher import ObjectMatcher
 from visualizer import Visualizer
 from camera import CameraManager
 from analyzer import ImageAnalyzer
+from reid_tracker import PersistentReIDTracker
 
 #import zewnętrzny
 import cv2
@@ -124,6 +125,7 @@ class MainApplication:
             self.root.withdraw()
             img = self.camera.capture_photo("Dodaj wzorzec")
             self.root.deiconify()
+
         if img is None:
             return
 
@@ -139,6 +141,7 @@ class MainApplication:
         x1,y1,x2,y2 = obj['bbox']
         crop = img[y1:y2, x1:x2]
         emb = self.extractor.extract(crop, cls)
+
         if emb is not None:
             self.database.add_pattern(name, cls, emb, obj['confidence'])
             messagebox.showinfo("Sukces", f"Wzorzec '{name}' dodany")
@@ -169,6 +172,7 @@ class MainApplication:
             x1,y1,x2,y2 = det['bbox']
             crop = img[y1:y2, x1:x2]
             emb = self.extractor.extract(crop, det['class'])
+
             if emb is not None:
                 name = f"{det['class']}_{i+1:03d}"
                 self.database.add_pattern(name, det['class'], emb, det['confidence'])
@@ -176,13 +180,15 @@ class MainApplication:
         messagebox.showinfo("Gotowe", f"Dodano {added} wzorców")
         self.refresh_patterns_list()
 
-    #Zakładka - Testu -------------------------------------------------------------------------
+    # Zakładka - Testu -------------------------------------------------------------------------
     def _create_test_tab(self):
         f = ttk.Frame()
         sf = ttk.LabelFrame(f, text="Źródło testu")
         sf.pack(fill=tk.X, padx=10, pady=5)
-        self.test_src = tk.StringVar(value="file")
-        ttk.Radiobutton(sf, text="Plik", variable=self.test_src, value="file")\
+        self.test_src = tk.StringVar(value="image")
+        ttk.Radiobutton(sf, text="Obraz", variable=self.test_src, value="image")\
+            .pack(side=tk.LEFT, padx=10)
+        ttk.Radiobutton(sf, text="Plik wideo", variable=self.test_src, value="video")\
             .pack(side=tk.LEFT, padx=10)
         ttk.Radiobutton(sf, text="Kamera", variable=self.test_src, value="camera")\
             .pack(side=tk.LEFT, padx=10)
@@ -193,20 +199,32 @@ class MainApplication:
         rf.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         self.results_text = tk.Text(rf, height=12, width=80)
         self.results_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
         return f
 
     def _start_test(self):
         self.results_text.delete(1.0, tk.END)
-        if self.test_src.get() == "file":
+        src = self.test_src.get()
+        if src == "image":
             path = filedialog.askopenfilename(filetypes=[("Obrazy", "*.jpg *.jpeg *.png")])
-            if not path: return
+            if not path:
+                return
             img = cv2.imread(path)
             if img is not None:
                 self._process_test_image(img, path)
-        else:
-            # Test z kamery – tryb live w nowym oknie
+        elif src == "video":
+            path = filedialog.askopenfilename(
+                title="Wybierz plik wideo",
+                filetypes=[("Pliki wideo", "*.mp4 *.avi *.mkv *.mov"), ("Wszystkie", "*.*")]
+            )
+            if not path:
+                return
             self.root.withdraw()
-            self._camera_live_test()
+            self._run_live_test(source=path)
+            self.root.deiconify()
+        else:  # camera
+            self.root.withdraw()
+            self._run_live_test(source=None)
             self.root.deiconify()
 
     def _process_test_image(self, img, path=None):
@@ -231,36 +249,57 @@ class MainApplication:
         cv2.waitKey(0)
         cv2.destroyWindow("Wynik testu")
 
-    def _camera_live_test(self):
-        """Test rozpoznawania z kamery na żywo."""
-        if not self.camera.open():
-            messagebox.showerror("Błąd", "Nie można otworzyć kamery")
-            return
+    def _run_live_test(self, source=None):
+        """Ujednolicony test live – source=None oznacza kamerę, source=ścieżka oznacza plik wideo."""
+        if source is not None:
+            cap = cv2.VideoCapture(source)
+            if not cap.isOpened():
+                messagebox.showerror("Błąd", f"Nie można otworzyć pliku wideo:\n{source}")
+                return
+            read_func = cap.read
+            close_func = cap.release
+            window_title = f"ReID: {source}"
+            logger.info(f"Otworzono plik wideo: {source}")
+        else:
+            if not self.camera.open():
+                messagebox.showerror("Błąd", "Nie można otworzyć kamery")
+                return
+            read_func = self.camera.read_frame
+            close_func = self.camera.close
+            window_title = "Test z kamery"
+            logger.info("Kamera live - naciśnij 'Q' / 'Esc' aby zakończyć")
 
-        logger.info("Kamera live - naciśnij  'q' / 'Esc' aby zakończyć") #informacja o sposobie zamknięcia
+        reid_tracker = PersistentReIDTracker()
         while True:
-            ret, frame = self.camera.read_frame()
+            ret, frame = read_func()
             if not ret:
                 break
             detections = self.detector.detect(frame)
+            trackable = []
             for det in detections:
-                x1,y1,x2,y2 = det['bbox']
+                x1, y1, x2, y2 = det['bbox']
                 crop = frame[y1:y2, x1:x2]
                 emb = self.extractor.extract(crop, det['class'])
                 if emb is not None:
+                    det['embedding'] = emb
+                    trackable.append(det)
                     match, sim = self.matcher.match(emb, det['class'])
-                    det['match'] = match or 'UNKNOWN'
+                    det['match'] = match or 'NIEZNANY'
                     det['similarity'] = sim
                 else:
-                    det['match'] = 'UNKNOWN'
+                    det['match'] = 'NIEZNANY'
                     det['similarity'] = 0.0
+
+            reid_tracker.update(trackable)
             annotated = self.visualizer.draw_detections(frame, detections)
-            cv2.imshow("Test z kamery", annotated)
+
+            cv2.imshow(window_title, annotated)
             key = cv2.waitKey(1) & 0xFF
-            if key == ord('q') or key == 27:
+            if key == ord('q') or key == 27:  # 'Q' lub ESC
                 break
-        self.camera.close()
-        cv2.destroyWindow("Test z kamery")
+
+        close_func()
+        cv2.destroyWindow(window_title)
 
     def _display_results(self, detections, out_path):
         self.results_text.insert(tk.END, f"Zapisano: {out_path}\n{'='*60}\n")
