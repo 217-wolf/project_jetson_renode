@@ -1,26 +1,45 @@
 Obsidian\ Vault/.obsidian/
-
-.vscode
-.idea
-
-sourcer/__pycache__
-__pycache__
-
 Model_Projektu
+
+.idea
+.vscode
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 
 test_wideo_reid.mp4
 patterns_database/
 recordings/
 
+
+# Virtual environments
 .jetson
 .venv/
 venv/
 .env
 .env.*
 
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+
+# Benchmark
+benchmark/dataset/images/
+benchmark/reports/*.csv
+
+# Python cache
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+sourcer/__pycache__
+__pycache__
 
-.pytest_cache/
+# Mac
+.DS_Store
 
+# Ultralytics artifacts
+runs/
